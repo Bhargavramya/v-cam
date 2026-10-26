@@ -320,6 +320,28 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
 .cam .mtag.show { animation: mtag .9s ease; }
 @keyframes mtag { 0% { opacity: 0; transform: translate(-50%, -40%); } 20% { opacity: 1; transform: translate(-50%, -50%); } 75% { opacity: 1; } 100% { opacity: 0; } }
 
+/* shops */
+.shopadd { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.shopadd input { min-width: 0; border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; background: var(--surface); font-size: 16px; }
+.shopadd #shName { grid-column: 1 / -1; }
+.shopadd button { grid-column: 1 / -1; min-height: 48px; border: 0; border-radius: 12px; background: var(--brand); color: #FDFBF7; font-family: var(--display); font-size: 1em; }
+.shoplist { display: grid; gap: 8px; margin-top: 14px; }
+.shopc { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); padding: 12px; display: grid; gap: 8px; transition: border-color .2s, box-shadow .2s; }
+.shopc.cur { border-color: var(--gold); box-shadow: inset 0 0 0 1.5px var(--gold); }
+.shopc .top { display: flex; align-items: center; gap: 10px; }
+.shopc .top div { flex: 1; min-width: 0; }
+.shopc b { display: block; font-family: var(--display); font-weight: 500; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shopc small { color: var(--muted); font-size: .82em; }
+.shopc .pick { min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--gold); background: none; color: var(--accent); font-family: var(--display); font-size: .85em; white-space: nowrap; }
+.shopc.cur .pick { background: var(--brand); border-color: var(--brand); color: #FDFBF7; }
+.shopc .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.shopc .acts a, .shopc .acts button { min-height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); display: inline-flex; align-items: center; gap: 6px; font-size: .85em; text-decoration: none; font-family: var(--display); }
+.shopc .acts svg { width: 17px; height: 17px; }
+.cam .cshop { max-width: 100%; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 0; background: rgba(255,255,255,.14); color: #fff; font-family: var(--display); font-size: 14px; }
+.cam .cshop span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cam .cshop.on { background: rgba(197,160,89,.3); color: #F1D9A6; }
+.cam .cshop svg { width: 17px; height: 17px; }
+
 /* lock */
 .lock { position: fixed; inset: 0; z-index: 99; background: var(--brand); color: #FDFBF7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
   padding: env(safe-area-inset-top, 0px) 24px env(safe-area-inset-bottom, 0px); }
@@ -371,6 +393,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></symbol>
   <symbol id="i-flash" viewBox="0 0 24 24"><path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/></symbol>
   <symbol id="i-flip" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><path d="M9 12.5a3 3 0 0 1 5.5-1.6M15 14a3 3 0 0 1-5.5 1.6"/><path d="M14.8 9v2h-2M9.2 17v-2h2"/></symbol>
+  <symbol id="i-shop" viewBox="0 0 24 24"><path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0"/><path d="M5.5 11.5V20h13v-8.5"/><path d="M10 20v-4.5h4V20"/></symbol>
   <symbol id="i-hash" viewBox="0 0 24 24"><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></symbol>
 </svg>
 
@@ -383,6 +406,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   <h1 id="title">V Cam</h1>
   <button class="ib txt hidden" id="selAll" type="button">All</button>
   <button class="ib hidden" id="favBtn" type="button" aria-label="Favourite" aria-pressed="false"><svg class="i"><use href="#i-star"/></svg></button>
+  <button class="ib" id="shopsBtn" type="button" aria-label="Shops"><svg class="i"><use href="#i-shop"/></svg></button>
   <button class="ib txt" id="selBtn" type="button">Select</button>
   <button class="ib" id="setBtn" type="button" aria-label="Settings"><svg class="i"><use href="#i-gear"/></svg></button>
 </header>
@@ -460,7 +484,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
 <div class="cam hidden" id="cam" role="dialog" aria-modal="true" aria-label="Camera">
   <div class="ctop">
     <button class="ib" type="button" id="cClose" aria-label="Close camera"><svg class="i"><use href="#i-x"/></svg></button>
-    <span style="flex:1"></span>
+    <span style="flex:1;display:flex;justify-content:center;min-width:0"><button type="button" class="cshop" id="cShop"><svg class="i"><use href="#i-shop"/></svg><span id="cShopT">Choose shop</span></button></span>
     <button class="ib hidden" type="button" id="cTorch" aria-label="Torch" aria-pressed="false"><svg class="i"><use href="#i-flash"/></svg></button>
     <button class="ib" type="button" id="cDone" style="font-weight:600;color:#F1D9A6;font-size:17px">Done</button>
   </div>
@@ -580,6 +604,28 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   <button class="big" type="button" id="catMake"><svg class="i"><use href="#i-book"/></svg><span id="catMakeT">Make catalogue</span></button>
 </div></div>
 
+<div class="sheet hidden" id="shopSheet" role="dialog" aria-modal="true" aria-labelledby="shT"><div class="panel">
+  <div class="grab"><h2 id="shT">Shops</h2><button class="ib" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+  <p class="mut" id="shHint">Pick the shop you are in. New photos get its name automatically.</p>
+  <div class="shopadd">
+    <label class="sr" for="shName">Shop name</label><input id="shName" maxlength="60" placeholder="Shop name" autocapitalize="words" enterkeyhint="next">
+    <label class="sr" for="shTel">Phone</label><input id="shTel" inputmode="tel" maxlength="20" placeholder="Phone (optional)" enterkeyhint="next">
+    <label class="sr" for="shArea">Area</label><input id="shArea" maxlength="60" placeholder="Area (optional)" autocapitalize="words" enterkeyhint="done">
+    <button type="button" id="shAdd">Add shop</button>
+  </div>
+  <button type="button" class="wide hidden" id="shNone">No shop for new photos</button>
+  <div class="shoplist" id="shList"></div>
+</div></div>
+
+<div class="sheet hidden" id="shopEdit" role="dialog" aria-modal="true" aria-labelledby="seT"><div class="panel">
+  <div class="grab"><h2 id="seT">Shop</h2><button class="ib" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+  <label class="f"><span>Name</span><input id="seName" maxlength="60" autocapitalize="words"></label>
+  <label class="f" style="margin-top:10px"><span>Phone</span><input id="seTel" inputmode="tel" maxlength="20"></label>
+  <label class="f" style="margin-top:10px"><span>Area</span><input id="seArea" maxlength="60" autocapitalize="words"></label>
+  <button class="big" type="button" id="seSave">Save</button>
+  <button class="wide" type="button" id="seDel" style="color:var(--bad);border-color:var(--bad)">Remove from list</button>
+</div></div>
+
 <div class="sheet hidden" id="saveSheet" role="dialog" aria-modal="true" aria-labelledby="sT"><div class="panel">
   <div class="grab"><h2 id="sT">Save this photo</h2><button class="ib" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
   <p>Press and hold the photo, then tap <span class="k">Save to Photos</span>.</p>
@@ -645,7 +691,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
 <script>
 (function () {
   'use strict';
-  var VERSION = '2.3';
+  var VERSION = '2.4';
   var $ = function (id) { return document.getElementById(id); };
   var WHOM = ['Husband / Wife', 'Friend (Boy/Girl)', 'Brother / Sister', 'Father', 'Mother', 'Kids'];
   var OCC = ['Birthday', 'Anniversary', 'Wedding', 'Engagement', 'Corporate', 'Housewarming', 'Seemantham', 'Barasala', 'Half-Saree', 'Just for fun'];
@@ -856,10 +902,73 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   function allocNo() { maxNo++; return 'V-' + String(maxNo).padStart(4, '0'); }
   function lastItem() { var b = null; items.forEach(function (it) { if (!it.draft && it.shop && (!b || it.created > b.created)) b = it; }); return b; }
   function newItem(extra) {
-    var last = lastItem(), t = Date.now();
+    var last = lastItem(), t = Date.now(), cs = curShop();
     return Object.assign({ id: 'it' + t.toString(36) + Math.random().toString(36).slice(2, 6), no: allocNo(), created: t, updated: t, name: '', cost: null, sell: null, points: [],
-      shop: last ? last.shop : '', contact: last ? last.contact || '' : '', showSell: P.showSell, showShop: P.showShop, draft: false, fav: false, album: F.album || '', place: '', whom: [], occ: [] }, extra || {});
+      shop: cs ? cs.name : (last ? last.shop : ''), contact: cs ? cs.tel || '' : (last ? last.contact || '' : ''), showSell: P.showSell, showShop: P.showShop, draft: false, fav: false, album: F.album || '', place: '', whom: [], occ: [] }, extra || {});
   }
+  // ---------- shops ----------
+  function shopList() {
+    var map = {}, out = [];
+    function get(n) { var k = n.toLowerCase(); if (!map[k]) { map[k] = { name: n, tel: '', area: '', count: 0, cost: 0, lat: null, lng: null, last: 0, saved: false }; out.push(map[k]); } return map[k]; }
+    (P.shops || []).forEach(function (s) { var r = get(s.name); r.tel = s.tel || ''; r.area = s.area || ''; r.saved = true; });
+    items.forEach(function (it) { if (!it.shop) return; var r = get(it.shop); r.count++; r.cost += it.cost || 0;
+      if (!r.tel && it.contact) r.tel = it.contact; if (!r.area && it.place) r.area = it.place; if (it.lat != null && when(it) > r.last) { r.lat = it.lat; r.lng = it.lng; } r.last = Math.max(r.last, when(it)); });
+    return out.filter(function (s) { return s.saved || s.count; }).sort(function (a, b) { return (b.name === P.curShop) - (a.name === P.curShop) || b.last - a.last || a.name.localeCompare(b.name); });
+  }
+  function curShop() { if (!P.curShop) return null; return shopList().find(function (s) { return s.name === P.curShop; }) || { name: P.curShop, tel: '' }; }
+  function saveShop(name, tel, area) {
+    P.shops = (P.shops || []).filter(function (s) { return s.name.toLowerCase() !== name.toLowerCase(); }); P.shops.push({ name: name, tel: tel || '', area: area || '' }); savePrefs();
+  }
+  function setCurShop(name) { P.curShop = name || ''; savePrefs(); camShop(); renderShops(); }
+  function camShop() { var on = !!P.curShop; $('cShopT').textContent = on ? P.curShop : 'Choose shop'; $('cShop').classList.toggle('on', on); }
+  function openShops() { renderShops(); $('shName').value = ''; $('shTel').value = ''; $('shArea').value = ''; openSheet('shopSheet'); }
+  function renderShops() {
+    var box = $('shList'); box.textContent = ''; var list = shopList();
+    $('shNone').classList.toggle('hidden', !P.curShop);
+    if (!list.length) { var e = document.createElement('p'); e.className = 'mut'; e.textContent = 'No shops yet. Add the first one above.'; box.appendChild(e); }
+    list.forEach(function (s) {
+      var c = document.createElement('div'); c.className = 'shopc' + (s.name === P.curShop ? ' cur' : '');
+      var top = document.createElement('div'); top.className = 'top'; var d = document.createElement('div');
+      var b = document.createElement('b'); b.textContent = s.name; var sm = document.createElement('small');
+      sm.textContent = [s.count + (s.count === 1 ? ' item' : ' items'), s.cost ? rupee(s.cost) : '', s.area].filter(Boolean).join(' · '); d.appendChild(b); d.appendChild(sm); top.appendChild(d);
+      var pk = document.createElement('button'); pk.type = 'button'; pk.className = 'pick'; pk.textContent = s.name === P.curShop ? 'Shopping here' : "I'm here";
+      pk.addEventListener('click', function () { setCurShop(s.name === P.curShop ? '' : s.name); haptic('success'); if (s.name === P.curShop) { toast('New photos go to ' + s.name + '.'); if (!$('cam').classList.contains('hidden')) closeSheets(); } });
+      top.appendChild(pk); c.appendChild(top);
+      var acts = document.createElement('div'); acts.className = 'acts';
+      function act(icon, label, href, fn) { var a = document.createElement(href ? 'a' : 'button'); if (href) { a.href = href; if (!/^tel:/.test(href)) { a.target = '_blank'; a.rel = 'noopener'; } } else a.type = 'button';
+        a.innerHTML = '<svg class="i"><use href="#' + icon + '"/></svg>'; a.appendChild(document.createTextNode(label)); if (fn) a.addEventListener('click', fn); acts.appendChild(a); }
+      if (s.count) act('i-gallery', 'Photos', null, function () { closeSheets(); if (V.open) closeViewer(); F.shop = s.name; renderHome(); window.scrollTo(0, 0); toast('Showing ' + s.name + '.'); });
+      var t = (s.tel || '').replace(/[^0-9+]/g, '');
+      if (t.length > 5) { act('i-phone', 'Call', 'tel:' + t); act('i-wa', 'WhatsApp', waUrl(t)); }
+      if (s.lat != null) act('i-pin', 'Map', 'https://maps.apple.com/?ll=' + s.lat + ',' + s.lng + '&q=' + encodeURIComponent(s.name));
+      else if (s.area) act('i-pin', 'Map', 'https://maps.apple.com/?q=' + encodeURIComponent(s.name + ', ' + s.area));
+      act('i-edit', 'Edit', null, function () { openShopEdit(s); });
+      c.appendChild(acts); box.appendChild(c);
+    });
+  }
+  function addShopFromForm() {
+    var n = $('shName').value.trim().replace(/\s+/g, ' '); if (!n) { haptic('error'); $('shName').focus(); return; }
+    saveShop(n, $('shTel').value.trim(), $('shArea').value.trim()); setCurShop(n); haptic('success'); toast(n + ' added. New photos go there.');
+    $('shName').value = ''; $('shTel').value = ''; $('shArea').value = ''; document.activeElement && document.activeElement.blur();
+    if (!$('cam').classList.contains('hidden')) closeSheets();
+  }
+  $('shAdd').addEventListener('click', addShopFromForm);
+  [['shName', 'shTel'], ['shTel', 'shArea']].forEach(function (x) { $(x[0]).addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $(x[1]).focus(); } }); });
+  $('shArea').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); addShopFromForm(); } });
+  $('shNone').addEventListener('click', function () { setCurShop(''); toast('New photos will have no shop.'); });
+  $('shopsBtn').addEventListener('click', openShops);
+  $('cShop').addEventListener('click', openShops);
+  var editShop = null;
+  function openShopEdit(s) { editShop = s; $('seT').textContent = s.name; $('seName').value = s.name; $('seTel').value = s.tel || ''; $('seArea').value = s.area || ''; $('seDel').classList.toggle('hidden', !!s.count); closeSheets(); openSheet('shopEdit'); }
+  $('seSave').addEventListener('click', function () {
+    var old = editShop.name, n = $('seName').value.trim() || old, tel = $('seTel').value.trim(), area = $('seArea').value.trim();
+    P.shops = (P.shops || []).filter(function (s) { return s.name !== old; }); saveShop(n, tel, area); if (P.curShop === old) P.curShop = n; savePrefs();
+    var list = items.filter(function (it) { return it.shop === old && (n !== old || (tel && it.contact !== tel)); });
+    Promise.all(list.map(function (it) { return dbGet(it.id).then(function (f) { f.shop = n; if (tel) f.contact = tel; return touch(f); }); }))
+      .then(function () { if (F.shop === old) F.shop = n; return load(); }).then(function () { scheduleSync(); camShop(); closeSheets(); openShops(); toast('Shop saved' + (list.length ? ' · ' + list.length + ' items updated.' : '.')); });
+  });
+  $('seDel').addEventListener('click', function () { var old = editShop.name; P.shops = (P.shops || []).filter(function (s) { return s.name !== old; }); if (P.curShop === old) P.curShop = ''; savePrefs(); camShop(); closeSheets(); openShops(); toast('Removed.'); });
+
   function albums() {
     var seen = {}, out = [];
     (P.albums || []).concat(items.map(function (it) { return it.album; })).forEach(function (a) { if (a && !seen[a]) { seen[a] = 1; out.push(a); } });
@@ -1066,7 +1175,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   function updSel() {
     var on = !!sel, home = !$('home').classList.contains('hidden');
     $('selX').classList.toggle('hidden', !on); $('selAll').classList.toggle('hidden', !on);
-    $('logo').classList.toggle('hidden', on || !home); $('selBtn').classList.toggle('hidden', on || !home); $('setBtn').classList.toggle('hidden', on || !home);
+    $('logo').classList.toggle('hidden', on || !home); $('selBtn').classList.toggle('hidden', on || !home); $('shopsBtn').classList.toggle('hidden', on || !home); $('setBtn').classList.toggle('hidden', on || !home);
     $('selbar').classList.toggle('hidden', !on); $('shoot').classList.toggle('hidden', on || !home);
     $('title').textContent = on ? (sel.size ? sel.size + ' selected' : 'Select photos') : (home ? 'V Cam' : $('title').textContent);
     $('selbar').querySelectorAll('button').forEach(function (b) { b.disabled = on && !sel.size; });
@@ -1204,7 +1313,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     startStream().then(function () {
       C.count = 0; C.last = null; $('cThumbImg').classList.add('hidden'); setMode(P.camMode); camCount();
       $('cam').classList.remove('hidden'); replay($('cam'), 'enter'); document.body.classList.add('noscroll');
-      requestAnimationFrame(function () { setMode(P.camMode); });
+      requestAnimationFrame(function () { setMode(P.camMode); }); camShop();
       $('cHint').textContent = (F.album ? 'Saving to ' + F.album + ' · ' : '') + 'Swipe for Single ⇄ Burst';
       setTimeout(function () { $('cHint').textContent = ''; }, 3500);
       guideStart();
@@ -1419,7 +1528,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   function showEditorShell() {
     if (sel) endSelect();
     $('home').classList.add('hidden'); $('editor').classList.remove('hidden'); $('shoot').classList.add('hidden'); $('dock').classList.remove('hidden');
-    $('backBtn').classList.remove('hidden'); $('logo').classList.add('hidden'); $('setBtn').classList.add('hidden'); $('selBtn').classList.add('hidden'); $('favBtn').classList.remove('hidden');
+    $('backBtn').classList.remove('hidden'); $('logo').classList.add('hidden'); $('setBtn').classList.add('hidden'); $('selBtn').classList.add('hidden'); $('shopsBtn').classList.add('hidden'); $('favBtn').classList.remove('hidden');
     $('canvas').classList.add('hidden'); $('spin').classList.remove('hidden'); window.scrollTo(0, 0); replay($('editor'), 'enter');
   }
   function openEditor(it) {
@@ -1431,7 +1540,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   function replay(el, c) { el.classList.remove(c); void el.offsetWidth; el.classList.add(c); }
   function closeEditor() {
     $('editor').classList.add('hidden'); $('home').classList.remove('hidden'); $('shoot').classList.remove('hidden'); $('dock').classList.add('hidden');
-    $('backBtn').classList.add('hidden'); $('logo').classList.remove('hidden'); $('setBtn').classList.remove('hidden'); $('selBtn').classList.remove('hidden'); $('favBtn').classList.add('hidden');
+    $('backBtn').classList.add('hidden'); $('logo').classList.remove('hidden'); $('setBtn').classList.remove('hidden'); $('selBtn').classList.remove('hidden'); $('shopsBtn').classList.remove('hidden'); $('favBtn').classList.add('hidden');
     $('title').textContent = 'V Cam'; document.activeElement && document.activeElement.blur();
     if (img) URL.revokeObjectURL(img.src); cur = null; img = null; prepared = null; queue = queue || []; replay($('home'), 'enter'); return load();
   }
@@ -1515,10 +1624,10 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     var top = Object.keys(freq).sort(function (a, b) { return freq[b] - freq[a]; }).slice(0, 8), pc = $('ptChips'); pc.textContent = '';
     top.forEach(function (p) { var b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = '+ ' + p;
       b.addEventListener('click', function () { var v = pts.value.replace(/\s*$/, ''); pts.value = (v && !/^\s*•\s*$/.test(v) ? v + '\n' : '') + '• ' + p; changed(); }); pc.appendChild(b); });
-    var seen = {}, shops = []; items.slice().sort(function (a, b) { return b.created - a.created; }).forEach(function (it) { if (it.shop && !seen[it.shop]) { seen[it.shop] = 1; shops.push(it); } });
     var sc = $('shopChips'); sc.textContent = '';
-    shops.slice(0, 5).forEach(function (it) { var b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = it.shop;
-      b.addEventListener('click', function () { $('shop').value = it.shop; $('contact').value = it.contact || ''; changed(); }); sc.appendChild(b); });
+    shopList().slice(0, 8).forEach(function (s) { var b = document.createElement('button'); b.type = 'button'; b.className = 'chip' + (cur && cur.shop === s.name ? ' on' : ''); b.textContent = s.name;
+      b.addEventListener('click', function () { $('shop').value = s.name; $('contact').value = s.tel || ''; changed(); renderChips(); }); sc.appendChild(b); });
+    var nb = document.createElement('button'); nb.type = 'button'; nb.className = 'chip'; nb.textContent = '+ Shops'; nb.addEventListener('click', openShops); sc.appendChild(nb);
   }
 
   // ---------- compose: photo + info panel (made when needed, not stored) ----------
@@ -1579,7 +1688,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     return saveMediaIfNew(c).then(function () { return put(c); }).then(function () { if (!c.draft) scheduleSync(4000); }).catch(function () {});
   }
   function finalSave() {
-    var c = cur; c.draft = false; c.updated = Date.now(); if (prepared) shareCache[c.id] = { u: c.updated, b: prepared };
+    var c = cur; if (c.shop && !(P.shops || []).some(function (s) { return s.name.toLowerCase() === c.shop.toLowerCase(); })) saveShop(c.shop, c.contact, c.place); c.draft = false; c.updated = Date.now(); if (prepared) shareCache[c.id] = { u: c.updated, b: prepared };
     return saveMediaIfNew(c).then(function () { return put(c); }).then(function (r) { scheduleSync(); return r; });
   }
   function fname(it, ext) { return 'Varnana-' + it.no + (it.name ? '-' + it.name.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').slice(0, 30) : '') + (ext || '.jpg'); }

@@ -198,7 +198,8 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
 .cam .guide.ok b { background: #C5A059; box-shadow: 0 0 0 3px rgba(197,160,89,.35); } .cam .guide.ok { color: #F1D9A6; }
 .cam .guide.warn b { background: #E8A0B4; }
 .cam .shut.ok { border-color: #F1D9A6; }
-.cam .tips { position: absolute; left: 12px; right: 12px; top: 44px; text-align: center; font-size: 13px; color: rgba(255,255,255,.85); text-shadow: 0 1px 3px #000; pointer-events: none; }
+.cam .tips { display: none !important; }
+.cam .tips-old { position: absolute; left: 12px; right: 12px; top: 44px; text-align: center; font-size: 13px; color: rgba(255,255,255,.85); text-shadow: 0 1px 3px #000; pointer-events: none; }
 .cam .flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
 .cam .flash.go { animation: fl .22s ease; } @keyframes fl { 0% { opacity: .85; } 100% { opacity: 0; } }
 .cam .zooms { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 8px; background: rgba(0,0,0,.35); padding: 5px; border-radius: 999px; }
@@ -210,6 +211,9 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
 .cam .modes button { border: 0; background: none; color: rgba(255,255,255,.75); font-family: var(--display); font-size: 13px; letter-spacing: .14em; min-height: 32px; }
 .cam .modes button.on { color: #F1D9A6; }
 .cam .crow { display: flex; align-items: center; justify-content: space-between; }
+.cam .thumb { position: relative; overflow: visible !important; }
+.cam .tcnt { position: absolute; top: -8px; right: -8px; min-width: 22px; height: 22px; border-radius: 11px; background: #C5A059; color: #2B1A20; font: 600 12px var(--display); display: grid; place-items: center; padding: 0 5px; }
+.cam .thumb img { border-radius: 8px; }
 .cam .thumb { width: 54px; height: 54px; border-radius: 10px; border: 2px solid #fff; object-fit: cover; background: rgba(255,255,255,.12); padding: 0; overflow: hidden; }
 .cam .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .cam .shut { width: 78px; height: 78px; border-radius: 50%; border: 5px solid #fff; background: transparent; padding: 4px; }
@@ -427,11 +431,9 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
 <div class="cam hidden" id="cam" role="dialog" aria-modal="true" aria-label="Camera">
   <div class="ctop">
     <button class="ib" type="button" id="cClose" aria-label="Close camera"><svg class="i"><use href="#i-x"/></svg></button>
+    <span style="flex:1"></span>
     <button class="ib hidden" type="button" id="cTorch" aria-label="Torch" aria-pressed="false"><svg class="i"><use href="#i-flash"/></svg></button>
-    <span class="cnt" id="cCnt">0 photos</span>
-    <button class="ib" type="button" id="cGuideBtn" aria-label="Photo guide" aria-pressed="true"><svg class="i"><use href="#i-help"/></svg></button>
-    <button class="ib" type="button" id="cGrid" aria-label="Grid lines" aria-pressed="false"><svg class="i"><use href="#i-hash"/></svg></button>
-    <button class="ib" type="button" id="cDone" style="font-weight:600;color:#F1D9A6">Done</button>
+    <button class="ib" type="button" id="cDone" style="font-weight:600;color:#F1D9A6;font-size:17px">Done</button>
   </div>
   <div class="vf" id="vf">
     <video id="cv" playsinline muted autoplay></video>
@@ -445,8 +447,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     <div class="zooms" id="zooms"></div>
   </div>
   <div class="cbot">
-    <div class="modes"><button type="button" data-m="burst">BURST</button><button type="button" data-m="single">SINGLE</button></div>
-    <div class="crow"><button class="thumb" type="button" id="cThumb" aria-label="Open last photo"><img id="cThumbImg" alt="" class="hidden"></button><button class="shut" type="button" id="cShut" aria-label="Take photo"><i></i></button><button class="flip" type="button" id="cFlip" aria-label="Switch camera"><svg class="i"><use href="#i-flip"/></svg></button></div>
+    <div class="crow"><button class="thumb" type="button" id="cThumb" aria-label="Open last photo"><img id="cThumbImg" alt="" class="hidden"><span class="tcnt hidden" id="cCnt"></span></button><button class="shut" type="button" id="cShut" aria-label="Take photo"><i></i></button><span style="width:54px"></span></div>
   </div>
 </div>
 
@@ -564,6 +565,9 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     <div class="srow2"><label for="pVib">Vibration</label><input type="checkbox" class="sw" id="pVib"></div>
     <div class="srow2"><label for="pSplash">Opening animation</label><input type="checkbox" class="sw" id="pSplash"></div>
     <h3>Camera</h3>
+    <div class="srow2"><span>After each photo</span><div class="seg" data-pref="camMode"><button type="button" data-v="single">Add details</button><button type="button" data-v="burst">Keep shooting</button></div></div>
+    <div class="srow2"><label for="pGrid">Grid lines</label><input type="checkbox" class="sw" id="pGrid"></div>
+    <div class="srow2"><label for="pGuide">Photo guide (light, shake, focus)</label><input type="checkbox" class="sw" id="pGuide"></div>
     <div class="srow2"><label for="pLoc">Save location with photos<br><small class="mut">iPhone asks permission when on</small></label><input type="checkbox" class="sw" id="pLoc"></div>
     <div class="srow2"><span>Photo size</span><div class="seg" data-pref="qual"><button type="button" data-v="small">Small</button><button type="button" data-v="best">Best</button></div></div>
     <p class="mut" id="storeInfo"></p>
@@ -611,7 +615,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
 <script>
 (function () {
   'use strict';
-  var VERSION = '2.1';
+  var VERSION = '2.2';
   var $ = function (id) { return document.getElementById(id); };
   var WHOM = ['Husband / Wife', 'Friend (Boy/Girl)', 'Brother / Sister', 'Father', 'Mother', 'Kids'];
   var OCC = ['Birthday', 'Anniversary', 'Wedding', 'Engagement', 'Corporate', 'Housewarming', 'Seemantham', 'Barasala', 'Half-Saree', 'Just for fun'];
@@ -627,7 +631,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     if (P.theme === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', P.theme);
     r.setAttribute('data-size', P.size); r.setAttribute('data-anim', P.anim); r.style.setProperty('--cols', P.cols);
     document.querySelectorAll('.seg').forEach(function (s) { s.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(P[s.dataset.pref] === b.dataset.v)); }); });
-    $('pVib').checked = !!P.vib; $('pSplash').checked = !!P.splash; $('pLoc').checked = !!P.loc; $('pBiz').value = P.biz || ''; $('pLock').checked = !!P.pin;
+    $('pVib').checked = !!P.vib; $('pSplash').checked = !!P.splash; $('pLoc').checked = !!P.loc; $('pGrid').checked = !!P.grid; $('pGuide').checked = !!P.guide; $('pBiz').value = P.biz || ''; $('pLock').checked = !!P.pin;
   }
   // v2.1 defaults: Single mode, grid lines on, no location prompts (location can be switched on in Settings)
   if (!P.d21) { P.camMode = 'single'; P.grid = true; P.loc = false; P.d21 = 1; savePrefs(); }
@@ -1111,7 +1115,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     startStream().then(function () {
       C.count = 0; C.last = null; $('cThumbImg').classList.add('hidden'); setMode(P.camMode); camCount();
       $('cam').classList.remove('hidden'); document.body.classList.add('noscroll');
-      $('cHint').textContent = (P.camMode === 'burst' ? 'Burst: tap for each item, add details later.' : 'Single: details open after the photo.') + (F.album ? ' Saving to ' + F.album + '.' : '');
+      $('cHint').textContent = F.album ? 'Saving to ' + F.album : '';
       setTimeout(function () { $('cHint').textContent = ''; }, 3500);
       guideStart();
     }).catch(function (e) {
@@ -1133,7 +1137,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   function stopStream() { if (C.stream) C.stream.getTracks().forEach(function (t) { t.stop(); }); C.stream = null; C.track = null; }
   function maxZoom() { return C.hw ? Math.min(C.hw.max, 10) : 5; }
   function renderZooms() {
-    var z = $('zooms'); z.textContent = ''; var stops = [1, 2, 3];
+    var z = $('zooms'); z.textContent = ''; var stops = [1, 2];
     if (C.hw && C.hw.min <= 0.5) stops.unshift(0.5);
     stops.filter(function (s) { return s <= maxZoom(); }).forEach(function (s) {
       var b = document.createElement('button'); b.type = 'button'; b.dataset.z = s; b.textContent = (s === 0.5 ? '.5' : s) + '×';
@@ -1156,11 +1160,9 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   })();
   function setMode(m) { P.camMode = m; savePrefs(); document.querySelectorAll('.cam .modes button').forEach(function (b) { b.classList.toggle('on', b.dataset.m === m); }); }
   document.querySelectorAll('.cam .modes button').forEach(function (b) { b.addEventListener('click', function () { setMode(b.dataset.m); }); });
-  function camCount() { $('cCnt').textContent = C.count + (C.count === 1 ? ' photo' : ' photos') + (F.album ? ' · ' + F.album : ''); }
-  $('cGrid').addEventListener('click', function () { P.grid = !P.grid; savePrefs(); $('gridl').classList.toggle('on', P.grid); this.classList.toggle('on', P.grid); });
-  $('gridl').classList.toggle('on', !!P.grid); $('cGrid').classList.toggle('on', !!P.grid);
+  function camCount() { $('cCnt').textContent = C.count; $('cCnt').classList.toggle('hidden', !C.count); }
   $('cTorch').addEventListener('click', function () { if (!C.track) return; C.torch = !C.torch; try { C.track.applyConstraints({ advanced: [{ torch: C.torch }] }); } catch (e) {} this.classList.toggle('on', C.torch); });
-  $('cFlip').addEventListener('click', function () { C.facing = C.facing === 'environment' ? 'user' : 'environment'; startStream().catch(function () { toast('Could not switch camera.'); }); });
+
   $('cShut').addEventListener('click', function () {
     var v = $('cv'), w = v.videoWidth, h = v.videoHeight; if (!w) return;
     var dz = C.hw ? 1 : C.zoom, sw = w / dz, sh = h / dz, sx = (w - sw) / 2, sy = (h - sh) / 2;
@@ -1198,12 +1200,12 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   function onTilt(e) { if (e.beta == null) return; G.tilt = { b: e.beta, g: e.gamma }; }
   function guideStart() {
     var on = !!P.guide; $('cFrame').classList.toggle('on', on); $('cGuide').classList.toggle('on', on); $('cLevel').classList.toggle('on', false);
-    $('cGuideBtn').classList.toggle('on', on); $('cTips').textContent = '';
+    $('gridl').classList.toggle('on', !!P.grid); $('cTips').textContent = '';
     if (!on) return;
     window.addEventListener('deviceorientation', onTilt);
     G.c = document.createElement('canvas'); G.c.width = 64; G.c.height = 48; G.prev = null; G.sharpRef = 0;
     clearInterval(G.t); G.t = setInterval(guideTick, 280);
-    G.tipI = 0; showTip(); clearInterval(G.tipT); G.tipT = setInterval(showTip, 4500);
+
   }
   function guideStop() { clearInterval(G.t); clearInterval(G.tipT); window.removeEventListener('deviceorientation', onTilt); }
   function showTip() { $('cTips').textContent = TIPS[G.tipI++ % TIPS.length]; }
@@ -1224,16 +1226,16 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
       if (up && Math.abs(roll) >= 4) level = 'Straighten the phone';
     }
     var msg = '', ok = false;
-    if (mean < 55) msg = C.track && !$('cTorch').classList.contains('hidden') && !C.torch ? 'Too dark – move to light or turn on the torch' : 'Too dark – move closer to light';
-    else if (hot / n > 0.18) msg = 'Too bright – avoid direct light or glare';
+    if (mean < 55) msg = 'Too dark';
+    else if (hot / n > 0.18) msg = 'Too bright';
     else if (move > 9) msg = 'Hold steady';
-    else if (level) msg = level;
-    else if (edge < 6 || edge < G.sharpRef * 0.45) msg = 'Blurry – move back a little and hold steady';
-    else { msg = 'Looks good – tap to shoot'; ok = true; }
+    else if (level) msg = 'Straighten';
+    else if (edge < 6 || edge < G.sharpRef * 0.45) msg = 'Move back a little';
+    else { msg = 'Good'; ok = true; }
     var gd = $('cGuide'); gd.classList.toggle('ok', ok); gd.classList.toggle('warn', !ok); $('cGuideT').textContent = msg;
     $('cFrame').classList.toggle('ok', ok); $('cFrame').classList.toggle('warn', !ok); $('cShut').classList.toggle('ok', ok);
   }
-  $('cGuideBtn').addEventListener('click', function () { P.guide = !P.guide; savePrefs(); if (!P.guide) { guideStop(); $('cLevel').classList.remove('on'); } guideStart(); toast(P.guide ? 'Photo guide on.' : 'Photo guide off.'); });
+
   function systemCamera() { picking = true; geoStart(); $('camIn').value = ''; $('camIn').click(); }
 
   // ---------- import from gallery ----------
@@ -1746,6 +1748,8 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   $('pVib').addEventListener('change', function () { P.vib = this.checked; savePrefs(); if (P.vib) haptic('success'); });
   $('pSplash').addEventListener('change', function () { P.splash = this.checked; savePrefs(); });
   $('pLoc').addEventListener('change', function () { P.loc = this.checked; savePrefs(); });
+  $('pGrid').addEventListener('change', function () { P.grid = this.checked; savePrefs(); });
+  $('pGuide').addEventListener('change', function () { P.guide = this.checked; savePrefs(); });
   $('pBiz').addEventListener('input', function () { P.biz = this.value.trim(); savePrefs(); });
   $('helpBtn').addEventListener('click', function () { closeSheets(); openSheet('helpSheet'); });
   function storeInfo() {

@@ -138,6 +138,15 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
 .f > span, .lbl { font-size: .72em; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-ink); font-family: var(--display); font-weight: 500; }
 .f input, .f textarea { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; background: var(--surface); font-size: max(16px, 1em); color: var(--ink); }
 .f textarea { min-height: 104px; resize: none; line-height: 1.5; }
+.main2 { display: grid; grid-template-columns: minmax(0, 1fr) 118px; gap: 10px; }
+.moreBtn { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 54px; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-align: left; }
+.moreBtn span { flex: 1; min-width: 0; display: grid; }
+.moreBtn b { font-family: var(--display); font-weight: 500; color: var(--accent); }
+.moreBtn small { color: var(--muted); font-size: .82em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.moreBtn .chev { transform: rotate(-90deg); transition: transform .2s; color: var(--gold-ink); }
+.moreBtn[aria-expanded="true"] .chev { transform: rotate(90deg); }
+.more { display: grid; gap: 12px; }
+.more.hidden { display: none !important; }
 .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .money { position: relative; } .money::before { content: "₹"; position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted); }
 .money input { padding-left: 28px; font-variant-numeric: tabular-nums; }
@@ -244,9 +253,13 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
       <div class="tools"><button type="button" id="rotBtn"><svg class="i"><use href="#i-rotate"/></svg>Rotate</button><button type="button" id="retake"><svg class="i"><use href="#i-retake"/></svg>Retake</button><button type="button" id="regal" aria-label="Choose another photo from gallery"><svg class="i"><use href="#i-gallery"/></svg></button></div>
     </div>
     <form class="form" id="form" autocomplete="off" novalidate>
-      <label class="f"><span>Item name</span><input id="name" maxlength="70" placeholder="e.g. Brass diya gift set" enterkeyhint="next" autocapitalize="words"></label>
+      <div class="main2">
+        <label class="f"><span>Item name</span><input id="name" maxlength="70" placeholder="e.g. Brass diya set" enterkeyhint="next" autocapitalize="words"></label>
+        <label class="f"><span>Cost</span><div class="money"><input id="cost" inputmode="decimal" placeholder="0" enterkeyhint="done"></div></label>
+      </div>
+      <button type="button" class="moreBtn" id="moreBtn" aria-expanded="false" aria-controls="more"><span><b>More details</b><small id="moreSum">Selling price, points, shop</small></span><svg class="i chev"><use href="#i-back"/></svg></button>
+      <div class="more hidden" id="more">
       <div class="two">
-        <label class="f"><span>Cost</span><div class="money"><input id="cost" inputmode="decimal" placeholder="0" enterkeyhint="next"></div></label>
         <label class="f"><span>Selling price</span><div class="money"><input id="sell" inputmode="decimal" placeholder="0" enterkeyhint="next"></div></label>
       </div>
       <div class="chips" id="mult" aria-label="Quick selling price"><button type="button" class="chip" data-x="1.5">×1.5</button><button type="button" class="chip" data-x="2">×2</button><button type="button" class="chip" data-x="2.5">×2.5</button><button type="button" class="chip" data-x="3">×3</button></div>
@@ -261,6 +274,7 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
       <div class="chips" id="shopChips"></div>
       <span class="lbl">On the photo</span>
       <div class="chips"><button type="button" class="chip" id="tSell" aria-pressed="false">Selling price &amp; margin</button><button type="button" class="chip on" id="tShop" aria-pressed="true">Shop &amp; contact</button></div>
+      </div>
     </form>
   </section>
 </main>
@@ -378,7 +392,7 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
 <script>
 (function () {
   'use strict';
-  var VERSION = '1.6';
+  var VERSION = '1.7';
   var $ = function (id) { return document.getElementById(id); };
 
   // ---------- preferences ----------
@@ -601,8 +615,13 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
     $('points').value = (cur.points || []).map(function (p) { return '• ' + p; }).join('\n');
     $('shop').value = cur.shop || ''; $('contact').value = cur.contact || '';
     setToggle('tSell', cur.showSell); setToggle('tShop', cur.showShop !== false);
-    renderChips(); readForm(); redraw();
+    renderChips(); readForm(); redraw(); setMore(false);
   }
+  function setMore(open) {
+    $('more').classList.toggle('hidden', !open); $('moreBtn').setAttribute('aria-expanded', String(open));
+    $('cost').setAttribute('enterkeyhint', open ? 'next' : 'done');
+  }
+  $('moreBtn').addEventListener('click', function () { var open = $('more').classList.contains('hidden'); setMore(open); if (open) setTimeout(function () { $('sell').focus(); }, 60); });
   function setToggle(id, on) { $(id).classList.toggle('on', !!on); $(id).setAttribute('aria-pressed', String(!!on)); }
   function readForm() {
     cur.name = $('name').value.trim(); cur.cost = num($('cost').value); cur.sell = num($('sell').value);
@@ -615,6 +634,9 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
       ml.appendChild(document.createTextNode('Margin ')); ml.appendChild(b);
       ml.appendChild(document.createTextNode(' · ' + Math.round(mg.pct) + '% of selling' + (cur.cost ? ' · ' + Math.round(mg.m / cur.cost * 100) + '% markup' : '')));
     } else ml.textContent = cur.cost != null ? 'Tap ×2 to set the selling price quickly' : '';
+    var bits = [];
+    if (cur.sell != null) bits.push('Selling ' + rupee(cur.sell)); if (cur.points.length) bits.push(cur.points.length + (cur.points.length === 1 ? ' point' : ' points')); if (cur.shop) bits.push(cur.shop);
+    $('moreSum').textContent = bits.length ? bits.join(' · ') : 'Selling price, points, shop';
     var tel = cur.contact.replace(/[^0-9+]/g, ''); $('callA').classList.toggle('hidden', tel.length < 6); $('callA').href = 'tel:' + tel;
   }
   function changed() { readForm(); clearTimeout(drawT); drawT = setTimeout(redraw, 120); clearTimeout(draftT); draftT = setTimeout(saveDraft, 700); }
@@ -626,7 +648,9 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
     $(id).addEventListener('keydown', function (e) {
       if (e.key !== 'Enter') return;
       if (id === 'points') return;            // Enter makes a new bullet there
-      e.preventDefault(); var nx = order[i + 1]; if (nx) $(nx).focus(); else $(id).blur();
+      e.preventDefault(); var nx = order[i + 1];
+      if (id === 'cost' && $('more').classList.contains('hidden')) nx = null;   // simple mode: name → cost → done
+      if (nx) $(nx).focus(); else $(id).blur();
     });
     $(id).addEventListener('focus', function () { var el = this; setTimeout(function () { el.scrollIntoView({ block: 'center', behavior: P.anim === 'off' ? 'auto' : 'smooth' }); }, 300); });
   });

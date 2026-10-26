@@ -291,6 +291,35 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
 .info ul { margin: 0; padding-left: 18px; }
 #catPrev { width: 100%; border-radius: 10px; margin-top: 12px; box-shadow: 0 4px 16px var(--shadow); }
 
+/* motion: soft transitions everywhere (switch off in Settings → Animations) */
+.cell img, .row .th img { opacity: 0; transition: opacity .3s ease; }
+.cell img.in, .row .th img.in { opacity: 1; }
+.cell.missing::before, .th.missing::before { content: "No photo"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 11px; color: var(--muted); }
+.cell { transition: transform .18s ease; } .cell:active { transform: scale(.97); }
+.chk { transition: background .15s ease, transform .2s cubic-bezier(.2,.8,.2,1.4); } .sel .chk { transform: scale(1.12); }
+#editor.enter { animation: slideIn .32s cubic-bezier(.2,.8,.2,1); }
+#home.enter { animation: fadeIn .28s ease; }
+@keyframes slideIn { from { transform: translateX(42px); opacity: 0; } }
+@keyframes fadeIn { from { opacity: 0; } }
+.viewer.enter { animation: fadeIn .22s ease; }
+.viewer.enter #vImg { animation: zoomIn .32s cubic-bezier(.2,.8,.2,1); }
+@keyframes zoomIn { from { transform: scale(.88); opacity: .3; } }
+.cam.enter { animation: camIn .32s cubic-bezier(.2,.8,.2,1); }
+@keyframes camIn { from { transform: translateY(6%); opacity: 0; } }
+.cam.fadeout { opacity: 0; transition: opacity .28s ease; pointer-events: none; }
+.toast { animation: drop .26s cubic-bezier(.2,.8,.2,1); }
+@keyframes drop { from { transform: translate(-50%, -16px); opacity: 0; } }
+.selbar, .dock { animation: barUp .24s cubic-bezier(.2,.8,.2,1); }
+@keyframes barUp { from { transform: translateY(100%); } }
+.shoot { animation: fadeIn .3s ease; }
+.alb, .chip { transition: background .2s ease, color .2s ease, border-color .2s ease, transform .08s ease; }
+.cam .modes { transition: transform .28s cubic-bezier(.2,.8,.2,1); }
+.cam .modes button { transition: color .2s ease, transform .2s ease; }
+.cam .modes button.on { transform: scale(1.08); }
+.cam .mtag { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); font: 600 22px var(--display); letter-spacing: .18em; color: #F1D9A6; text-shadow: 0 2px 8px rgba(0,0,0,.7); opacity: 0; pointer-events: none; }
+.cam .mtag.show { animation: mtag .9s ease; }
+@keyframes mtag { 0% { opacity: 0; transform: translate(-50%, -40%); } 20% { opacity: 1; transform: translate(-50%, -50%); } 75% { opacity: 1; } 100% { opacity: 0; } }
+
 /* lock */
 .lock { position: fixed; inset: 0; z-index: 99; background: var(--brand); color: #FDFBF7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
   padding: env(safe-area-inset-top, 0px) 24px env(safe-area-inset-bottom, 0px); }
@@ -444,9 +473,11 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     <div class="guide" id="cGuide"><b></b><span id="cGuideT">Checking…</span></div>
     <div class="flash" id="cFlash"></div>
     <div class="hint" id="cHint"></div>
+    <div class="mtag" id="cMtag"></div>
     <div class="zooms" id="zooms"></div>
   </div>
   <div class="cbot">
+    <div class="modes"><button type="button" data-m="single">SINGLE</button><button type="button" data-m="burst">BURST</button></div>
     <div class="crow"><button class="thumb" type="button" id="cThumb" aria-label="Open last photo"><img id="cThumbImg" alt="" class="hidden"><span class="tcnt hidden" id="cCnt"></span></button><button class="shut" type="button" id="cShut" aria-label="Take photo"><i></i></button><span style="width:54px"></span></div>
   </div>
 </div>
@@ -565,7 +596,6 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     <div class="srow2"><label for="pVib">Vibration</label><input type="checkbox" class="sw" id="pVib"></div>
     <div class="srow2"><label for="pSplash">Opening animation</label><input type="checkbox" class="sw" id="pSplash"></div>
     <h3>Camera</h3>
-    <div class="srow2"><span>After each photo</span><div class="seg" data-pref="camMode"><button type="button" data-v="single">Add details</button><button type="button" data-v="burst">Keep shooting</button></div></div>
     <div class="srow2"><label for="pGrid">Grid lines</label><input type="checkbox" class="sw" id="pGrid"></div>
     <div class="srow2"><label for="pGuide">Photo guide (light, shake, focus)</label><input type="checkbox" class="sw" id="pGuide"></div>
     <div class="srow2"><label for="pLoc">Save location with photos<br><small class="mut">iPhone asks permission when on</small></label><input type="checkbox" class="sw" id="pLoc"></div>
@@ -615,7 +645,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
 <script>
 (function () {
   'use strict';
-  var VERSION = '2.2';
+  var VERSION = '2.3';
   var $ = function (id) { return document.getElementById(id); };
   var WHOM = ['Husband / Wife', 'Friend (Boy/Girl)', 'Brother / Sister', 'Father', 'Mother', 'Kids'];
   var OCC = ['Birthday', 'Anniversary', 'Wedding', 'Engagement', 'Corporate', 'Housewarming', 'Seemantham', 'Barasala', 'Half-Saree', 'Just for fun'];
@@ -659,19 +689,53 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   }
 
   // ---------- storage ----------
+  // Two stores: 'items' holds details only; 'media' holds each photo + preview as raw bytes.
+  // Changing details (favourite, album, name…) never re-saves the picture, so pictures can't get lost.
   var dbp = new Promise(function (res, rej) {
-    var r = indexedDB.open('varnana-items', 1);
-    r.onupgradeneeded = function () { r.result.createObjectStore('items', { keyPath: 'id' }); };
+    var r = indexedDB.open('varnana-items', 2);
+    r.onupgradeneeded = function () { var db = r.result;
+      if (!db.objectStoreNames.contains('items')) db.createObjectStore('items', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('media')) db.createObjectStore('media', { keyPath: 'id' }); };
     r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); };
   });
-  function tx(mode, fn) { return dbp.then(function (db) { return new Promise(function (res, rej) {
-    var t = db.transaction('items', mode), out = fn(t.objectStore('items'));
+  function txs(store, mode, fn) { return dbp.then(function (db) { return new Promise(function (res, rej) {
+    var t = db.transaction(store, mode), out = fn(t.objectStore(store));
     t.oncomplete = function () { res(out && out.result); }; t.onerror = function () { rej(t.error); };
   }); }); }
+  function tx(mode, fn) { return txs('items', mode, fn); }
   var getAll = function () { return tx('readonly', function (s) { return s.getAll(); }); };
   var dbGet = function (id) { return tx('readonly', function (s) { return s.get(id); }); };
-  var put = function (it) { return tx('readwrite', function (s) { return s.put(it); }); };
+  var put = function (it) { var o = {}; Object.keys(it).forEach(function (k) { if (k !== 'photo' && k !== 'thumb' && k !== 'image' && k !== 'photoDirty') o[k] = it[k]; }); return tx('readwrite', function (s) { return s.put(o); }); };
   var del = function (id) { return tx('readwrite', function (s) { return s.delete(id); }); };
+  function toRec(b) { return b ? b.arrayBuffer().then(function (a) { return { b: a, t: b.type || 'image/jpeg' }; }) : Promise.resolve(null); }
+  function fromRec(r) { return r && r.b ? new Blob([r.b], { type: r.t }) : null; }
+  function putMedia(id, photo, thumb) {
+    return (thumb || !photo ? Promise.resolve(thumb) : makeThumb(photo).catch(function () { return null; })).then(function (t) {
+      return Promise.all([toRec(photo), toRec(t)]); }).then(function (r) { return txs('media', 'readwrite', function (s) { return s.put({ id: id, photo: r[0], thumb: r[1] }); }); })
+      .then(function () { dropThumbUrl(id); });
+  }
+  function getMedia(id) { return txs('media', 'readonly', function (s) { return s.get(id); }).then(function (r) { return r ? { photo: fromRec(r.photo), thumb: fromRec(r.thumb) } : {}; }); }
+  function delMedia(id) { dropThumbUrl(id); return txs('media', 'readwrite', function (s) { return s.delete(id); }); }
+  function photoOf(it) { return getMedia(it.id).then(function (m) { return m.photo || m.thumb || null; }); }
+  var thumbUrls = {};
+  function dropThumbUrl(id) { if (thumbUrls[id]) { URL.revokeObjectURL(thumbUrls[id]); delete thumbUrls[id]; } }
+  function thumbUrl(id) {
+    if (thumbUrls[id]) return Promise.resolve(thumbUrls[id]);
+    return getMedia(id).then(function (m) { var b = m.thumb || m.photo; if (!b) return ''; if (!thumbUrls[id]) thumbUrls[id] = URL.createObjectURL(b); return thumbUrls[id]; });
+  }
+  // move pictures saved by older versions into the media store (once)
+  function migrate() {
+    return getAll().then(function (all) {
+      var old = all.filter(function (it) { return it.photo || it.thumb || it.image; }); if (!old.length) return;
+      function ok(b) { return b ? b.arrayBuffer().then(function () { return b; }).catch(function () { return null; }) : Promise.resolve(null); }
+      return old.reduce(function (p, it) { return p.then(function () {
+        return Promise.all([ok(it.photo || it.image), ok(it.thumb)]).then(function (r) {
+          var photo = r[0] || r[1];
+          return (photo ? putMedia(it.id, photo, r[1]) : Promise.resolve()).then(function () { if (!photo) it.lost = true; if (photo && !it.mv) it.mv = it.updated || it.created; return put(it); });
+        }).catch(function () {});
+      }); }, Promise.resolve());
+    });
+  }
   try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
 
   // ---------- formats ----------
@@ -788,7 +852,6 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   var items = [], byId = {}, urls = [], maxNo = 0, sel = null;
   var F = { album: '', quick: 'all', sort: 'new', from: '', to: '', place: '', shop: '', whom: [], occ: [] };
   function url(b) { var u = URL.createObjectURL(b); urls.push(u); return u; }
-  function thumbOf(it) { return it.thumb || it.photo || it.image; }
   function needsInfo(it) { return !it.name || it.cost == null; }
   function allocNo() { maxNo++; return 'V-' + String(maxNo).padStart(4, '0'); }
   function lastItem() { var b = null; items.forEach(function (it) { if (!it.draft && it.shop && (!b || it.created > b.created)) b = it; }); return b; }
@@ -840,9 +903,15 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
 
   // ---------- home ----------
   var io = 'IntersectionObserver' in window ? new IntersectionObserver(function (es) {
-    es.forEach(function (e) { if (!e.isIntersecting) return; var im = e.target; io.unobserve(im); var it = byId[im.dataset.id]; if (it && thumbOf(it)) im.src = url(thumbOf(it)); });
+    es.forEach(function (e) { if (!e.isIntersecting) return; io.unobserve(e.target); setThumb(e.target); });
   }, { rootMargin: '800px 0px' }) : null;
-  function lazy(im, it) { im.dataset.id = it.id; if (io) io.observe(im); else if (thumbOf(it)) im.src = url(thumbOf(it)); }
+  function setThumb(im) {
+    thumbUrl(im.dataset.id).then(function (u) {
+      if (!u) { var c = im.closest('.cell, .th'); if (c) c.classList.add('missing'); return; }
+      im.onload = function () { im.classList.add('in'); }; im.src = u; if (im.complete && im.naturalWidth) im.classList.add('in');
+    });
+  }
+  function lazy(im, it) { im.dataset.id = it.id; if (thumbUrls[it.id]) { im.src = thumbUrls[it.id]; im.classList.add('in'); } else if (io) io.observe(im); else setThumb(im); }
   function starSvg() { return '<svg class="i"><use href="#i-star"/></svg>'; }
   var lastVis = [];
   function renderHome() {
@@ -940,13 +1009,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
       thumbLater(); queuePlaces();
     });
   }
-  // older items get small previews in the background, one at a time
-  var thumbBusy = false;
-  function thumbLater() {
-    if (thumbBusy) return; var it = items.find(function (x) { return !x.thumb && (x.photo || x.image); }); if (!it) return; thumbBusy = true;
-    makeThumb(it.photo || it.image).then(function (t) { return dbGet(it.id).then(function (f) { if (f) { f.thumb = t; it.thumb = t; return put(f); } }); })
-      .catch(function () { it.thumb = it.photo; }).then(function () { thumbBusy = false; setTimeout(thumbLater, 60); });
-  }
+  function thumbLater() {}
 
   // albums row + quick chips
   function renderAlbums() {
@@ -1010,7 +1073,33 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     $('selAll').textContent = on && lastVis.length && lastVis.every(function (it) { return sel.has(it.id); }) ? 'None' : 'All';
     $('todoBar').classList.toggle('hidden', on || !todoList().length);
   }
-  $('selBtn').addEventListener('click', function () { startSelect(); });
+  $('selBtn').addEventListener('click', function () { startSelect(); try { if (!localStorage.getItem('vcam-dragtip')) { localStorage.setItem('vcam-dragtip', '1'); toast('Tip: slide your finger across photos to select many.'); } } catch (e) {} });
+  // drag to select: slide sideways across photos, then up or down to select a whole range (like Photos)
+  (function () {
+    var list = $('list'), d = null, auto = 0;
+    function at(x, y) { var el = document.elementFromPoint(x, y); return el && el.closest ? el.closest('#list [data-id]') : null; }
+    function paint() {
+      if (!d || d.x == null) return; var c = at(d.x, d.y); if (!c) return;
+      var ids = lastVis.map(function (x) { return x.id; }), a = ids.indexOf(d.start), b = ids.indexOf(c.dataset.id); if (a < 0 || b < 0) return;
+      var lo = Math.min(a, b), hi = Math.max(a, b); sel = new Set(d.snap);
+      for (var i = lo; i <= hi; i++) { if (d.on) sel.add(ids[i]); else sel.delete(ids[i]); }
+      list.querySelectorAll('[data-id]').forEach(function (el) { el.classList.toggle('sel', sel.has(el.dataset.id)); });
+      if (d.last !== b) { d.last = b; haptic('tap'); } updSel();
+    }
+    list.addEventListener('touchstart', function (e) {
+      if (!sel || e.touches.length !== 1) return; var c = e.target.closest('[data-id]'); if (!c) return; var t = e.touches[0];
+      d = { x0: t.clientX, y0: t.clientY, start: c.dataset.id, on: !sel.has(c.dataset.id), snap: new Set(sel), active: false };
+    }, { passive: true });
+    list.addEventListener('touchmove', function (e) {
+      if (!d) return; var t = e.touches[0], dx = t.clientX - d.x0, dy = t.clientY - d.y0;
+      if (!d.active) { if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) d.active = true; else if (Math.abs(dy) > 10) { d = null; return; } else return; }
+      e.preventDefault(); d.x = t.clientX; d.y = t.clientY; paint();
+      clearInterval(auto);
+      if (d.y < 130 || d.y > innerHeight - 120) auto = setInterval(function () { if (!d) return clearInterval(auto); window.scrollBy(0, d.y < 130 ? -16 : 16); paint(); }, 30);
+    }, { passive: false });
+    function end() { clearInterval(auto); d = null; }
+    list.addEventListener('touchend', end, { passive: true }); list.addEventListener('touchcancel', end, { passive: true });
+  })();
   $('selX').addEventListener('click', endSelect);
   $('selAll').addEventListener('click', function () {
     var all = lastVis.every(function (it) { return sel.has(it.id); });
@@ -1114,8 +1203,9 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     geoStart();
     startStream().then(function () {
       C.count = 0; C.last = null; $('cThumbImg').classList.add('hidden'); setMode(P.camMode); camCount();
-      $('cam').classList.remove('hidden'); document.body.classList.add('noscroll');
-      $('cHint').textContent = F.album ? 'Saving to ' + F.album : '';
+      $('cam').classList.remove('hidden'); replay($('cam'), 'enter'); document.body.classList.add('noscroll');
+      requestAnimationFrame(function () { setMode(P.camMode); });
+      $('cHint').textContent = (F.album ? 'Saving to ' + F.album + ' · ' : '') + 'Swipe for Single ⇄ Burst';
       setTimeout(function () { $('cHint').textContent = ''; }, 3500);
       guideStart();
     }).catch(function (e) {
@@ -1158,26 +1248,53 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     vf.addEventListener('touchmove', function (e) { if (C.pinch && e.touches.length === 2) setZoom(C.z0 * d(e) / C.pinch); }, { passive: true });
     vf.addEventListener('touchend', function () { C.pinch = 0; }, { passive: true });
   })();
-  function setMode(m) { P.camMode = m; savePrefs(); document.querySelectorAll('.cam .modes button').forEach(function (b) { b.classList.toggle('on', b.dataset.m === m); }); }
+  function setMode(m, show) {
+    P.camMode = m; savePrefs(); document.querySelectorAll('.cam .modes button').forEach(function (b) { b.classList.toggle('on', b.dataset.m === m); });
+    // slide the labels so the chosen mode sits in the middle, like the iPhone camera
+    var md = document.querySelector('.cam .modes'), on = md.querySelector('.on');
+    if (on && md.offsetParent) { var mid = on.offsetLeft + on.offsetWidth / 2; md.style.transform = 'translateX(' + (md.offsetParent.clientWidth / 2 - mid) + 'px)'; }
+    if (show) { var t = $('cMtag'); t.textContent = m === 'burst' ? 'BURST' : 'SINGLE'; replay(t, 'show'); haptic('tap'); }
+  }
+  // swipe left / right on the viewfinder to switch Single ⇄ Burst
+  (function () {
+    var vf = $('vf'), s = null;
+    vf.addEventListener('touchstart', function (e) { s = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; }, { passive: true });
+    vf.addEventListener('touchend', function (e) {
+      if (!s || C.pinch) { s = null; return; } var t = e.changedTouches[0], dx = t.clientX - s.x, dy = t.clientY - s.y; s = null;
+      if (Math.abs(dx) > 50 && Math.abs(dy) < 60) { var m = dx < 0 ? 'burst' : 'single'; if (m !== P.camMode) setMode(m, true); }
+    }, { passive: true });
+  })();
   document.querySelectorAll('.cam .modes button').forEach(function (b) { b.addEventListener('click', function () { setMode(b.dataset.m); }); });
   function camCount() { $('cCnt').textContent = C.count; $('cCnt').classList.toggle('hidden', !C.count); }
   $('cTorch').addEventListener('click', function () { if (!C.track) return; C.torch = !C.torch; try { C.track.applyConstraints({ advanced: [{ torch: C.torch }] }); } catch (e) {} this.classList.toggle('on', C.torch); });
 
-  $('cShut').addEventListener('click', function () {
+  // tap = one photo; press and hold = rapid burst (like the iPhone)
+  var holdT = 0, holdI = 0, justHeld = false;
+  $('cShut').addEventListener('touchstart', function () { clearTimeout(holdT); holdT = setTimeout(function () { C.holding = true; takeShot(true); holdI = setInterval(function () { takeShot(true); }, 330); }, 380); }, { passive: true });
+  ['touchend', 'touchcancel'].forEach(function (ev) { $('cShut').addEventListener(ev, function () { clearTimeout(holdT); clearInterval(holdI); if (C.holding) { justHeld = true; C.holding = false; } }, { passive: true }); });
+  $('cShut').addEventListener('click', function () { if (justHeld) { justHeld = false; return; } takeShot(false); });
+  function takeShot(burst) {
     var v = $('cv'), w = v.videoWidth, h = v.videoHeight; if (!w) return;
     var dz = C.hw ? 1 : C.zoom, sw = w / dz, sh = h / dz, sx = (w - sw) / 2, sy = (h - sh) / 2;
     var sc = Math.min(1, maxSide() / Math.max(sw, sh)), c = document.createElement('canvas'); c.width = Math.round(sw * sc); c.height = Math.round(sh * sc);
     var g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height);
     var fl = $('cFlash'); fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go'); haptic('tap');
     C.count++; camCount(); C.busy++;
-    var it = newItem(hereNow()), single = P.camMode === 'single';
-    encode(c, 0.82).then(function (b) { it.photo = b; return makeThumb(b); }).then(function (t) {
-      it.thumb = t; $('cThumbImg').src = URL.createObjectURL(t); $('cThumbImg').classList.remove('hidden'); C.last = it;
-      return put(it);
-    }).then(function () { if (single) { closeCamera(true).then(function () { openEditor(it); }); } })
+    var it = newItem(hereNow()), single = !burst && P.camMode === 'single', photo = null; it.mv = it.created;
+    encode(c, 0.82).then(function (b) { photo = b; return makeThumb(b); }).then(function (t) {
+      var old = $('cThumbImg').src; $('cThumbImg').src = URL.createObjectURL(t); if (old) URL.revokeObjectURL(old); $('cThumbImg').classList.remove('hidden'); C.last = it;
+      return putMedia(it.id, photo, t).then(function () { return put(it); });
+    }).then(function () { if (single) camToEditor(it, photo); })
       .catch(function () { toast('A photo could not be saved. Storage may be full.'); })
       .then(function () { C.busy--; });
-  });
+  }
+  // Single mode: the details screen is opened under the camera, then the camera fades away (no flicker)
+  function camToEditor(it, photo) {
+    cur = Object.assign({}, it, { photo: photo }); showEditorShell();
+    loadImg(photo).then(function (i) { img = i; fillForm(); updateDock(); setTimeout(function () { if (!cur.name) $('name').focus(); }, 380); });
+    var cam = $('cam'); cam.classList.add('fadeout');
+    setTimeout(function () { closeCamera(true).then(function () { cam.classList.remove('fadeout'); }); }, 280);
+  }
   function closeCamera(quiet) {
     guideStop(); stopStream(); geoStop(); $('cam').classList.add('hidden'); document.body.classList.remove('noscroll');
     var n = C.count;
@@ -1255,7 +1372,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   }
   function importMany(fs) {
     var done = 0; toast('Importing ' + fs.length + ' photos…');
-    fs.reduce(function (p, f) { return p.then(function () { return fromFile(f, 'gal').then(function (extra) { var it = newItem(extra); done++; if (done % 10 === 0) toast('Imported ' + done + ' of ' + fs.length + '…'); return put(it); }).catch(function () {}); }); }, Promise.resolve())
+    fs.reduce(function (p, f) { return p.then(function () { return fromFile(f, 'gal').then(function (extra) { var it = newItem(extra); it.mv = it.created; done++; if (done % 10 === 0) toast('Imported ' + done + ' of ' + fs.length + '…'); return putMedia(it.id, extra.photo, extra.thumb).then(function () { return put(it); }); }).catch(function () {}); }); }, Promise.resolve())
       .then(load).then(function () { haptic('success'); scheduleSync(); toast(done + ' photos imported' + (F.album ? ' to ' + F.album : '') + '.', 'Fill now', fillTodo); });
   }
 
@@ -1270,6 +1387,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     fromFile(file, src).then(function (extra) {
       if (keep) { cur.photo = extra.photo; cur.thumb = extra.thumb; if (extra.taken) cur.taken = extra.taken; if (extra.lat != null && cur.lat == null) { cur.lat = extra.lat; cur.lng = extra.lng; } }
       else { cur = newItem(extra); cur.draft = true; }
+      cur.photoDirty = true;
       return loadImg(cur.photo);
     }).then(function (i) { img = i; fillForm(); updateDock(); saveDraft(); setTimeout(function () { if (!cur.name) $('name').focus(); }, 250); })
       .catch(function () { haptic('error'); toast('Could not open that photo. Please try again.'); closeEditor(); });
@@ -1294,7 +1412,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     if (rotating || !turns || !cur || !cur.photo) return;
     rotating = true; var t = turns; turns = 0;
     normalise(cur.photo, t).then(function (b) { cur.photo = b; return Promise.all([loadImg(b), makeThumb(b)]); })
-      .then(function (r) { img = r[0]; cur.thumb = r[1]; redraw(); saveDraft(); }).catch(function () {})
+      .then(function (r) { img = r[0]; cur.thumb = r[1]; cur.photoDirty = true; redraw(); saveDraft(); }).catch(function () {})
       .then(function () { rotating = false; runRotate(); });
   }
   $('rotBtn').addEventListener('click', function () { turns++; runRotate(); });
@@ -1302,17 +1420,20 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     if (sel) endSelect();
     $('home').classList.add('hidden'); $('editor').classList.remove('hidden'); $('shoot').classList.add('hidden'); $('dock').classList.remove('hidden');
     $('backBtn').classList.remove('hidden'); $('logo').classList.add('hidden'); $('setBtn').classList.add('hidden'); $('selBtn').classList.add('hidden'); $('favBtn').classList.remove('hidden');
-    $('canvas').classList.add('hidden'); $('spin').classList.remove('hidden'); window.scrollTo(0, 0);
+    $('canvas').classList.add('hidden'); $('spin').classList.remove('hidden'); window.scrollTo(0, 0); replay($('editor'), 'enter');
   }
   function openEditor(it) {
     cur = Object.assign({}, it); showEditorShell();
-    loadImg(it.photo || it.image).then(function (i) { img = i; fillForm(); updateDock(); if (!cur.name) setTimeout(function () { $('name').focus(); }, 250); });
+    getMedia(it.id).then(function (m) { cur.photo = m.photo || m.thumb; cur.thumb = m.thumb; if (!cur.photo) throw new Error('missing'); return loadImg(cur.photo); })
+      .then(function (i) { img = i; fillForm(); updateDock(); if (!cur.name) setTimeout(function () { $('name').focus(); }, 300); })
+      .catch(function () { haptic('error'); toast('This photo is missing. Use Retake or the gallery button to add one.'); img = null; fillForm(); updateDock(); $('spin').classList.add('hidden'); });
   }
+  function replay(el, c) { el.classList.remove(c); void el.offsetWidth; el.classList.add(c); }
   function closeEditor() {
     $('editor').classList.add('hidden'); $('home').classList.remove('hidden'); $('shoot').classList.remove('hidden'); $('dock').classList.add('hidden');
     $('backBtn').classList.add('hidden'); $('logo').classList.remove('hidden'); $('setBtn').classList.remove('hidden'); $('selBtn').classList.remove('hidden'); $('favBtn').classList.add('hidden');
     $('title').textContent = 'V Cam'; document.activeElement && document.activeElement.blur();
-    if (img) URL.revokeObjectURL(img.src); cur = null; img = null; prepared = null; queue = queue || []; return load();
+    if (img) URL.revokeObjectURL(img.src); cur = null; img = null; prepared = null; queue = queue || []; replay($('home'), 'enter'); return load();
   }
   function back() { var p = cur ? (readForm(), saveDraft()) : Promise.resolve(); queue = []; p.then(closeEditor); }
   $('backBtn').addEventListener('click', back);
@@ -1441,20 +1562,26 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   var shareCache = {};
   function shareBlob(it) {
     if (shareCache[it.id] && shareCache[it.id].u === it.updated) return Promise.resolve(shareCache[it.id].b);
-    if (needsInfo(it) && !it.name) return Promise.resolve(it.photo);
-    return loadImg(it.photo || it.image).then(function (im) { var c = compose(it, im); URL.revokeObjectURL(im.src);
+    if (!it.name && it.cost == null) return photoOf(it).then(function (b) { shareCache[it.id] = { u: it.updated, b: b }; return b; });
+    return photoOf(it).then(loadImg).then(function (im) { var c = compose(it, im); URL.revokeObjectURL(im.src);
       return new Promise(function (r) { c.toBlob(function (b) { shareCache[it.id] = { u: it.updated, b: b }; r(b); }, 'image/jpeg', 0.84); }); });
   }
 
   // ---------- save ----------
+  function saveMediaIfNew(c) {
+    if (!c.photoDirty || !c.photo) return Promise.resolve();
+    c.photoDirty = false; c.mv = Date.now(); return putMedia(c.id, c.photo, c.thumb);
+  }
   function saveDraft() {
     if (!cur || !cur.photo) return Promise.resolve();
     if (!cur.draft) cur.updated = Date.now();
-    var it = Object.assign({}, cur); delete it.image;
-    return put(it).then(function () { if (!it.draft) scheduleSync(4000); }).catch(function () {});
+    var c = cur;
+    return saveMediaIfNew(c).then(function () { return put(c); }).then(function () { if (!c.draft) scheduleSync(4000); }).catch(function () {});
   }
-  function finalSave() { var it = Object.assign({}, cur, { draft: false, updated: Date.now() }); delete it.image; if (prepared) shareCache[it.id] = { u: it.updated, b: prepared };
-    return put(it).then(function (r) { scheduleSync(); return r; }); }
+  function finalSave() {
+    var c = cur; c.draft = false; c.updated = Date.now(); if (prepared) shareCache[c.id] = { u: c.updated, b: prepared };
+    return saveMediaIfNew(c).then(function () { return put(c); }).then(function (r) { scheduleSync(); return r; });
+  }
   function fname(it, ext) { return 'Varnana-' + it.no + (it.name ? '-' + it.name.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').slice(0, 30) : '') + (ext || '.jpg'); }
   function shareFiles(files, title, done) {
     if (navigator.canShare && navigator.canShare({ files: files })) {
@@ -1472,7 +1599,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     var ready = list.every(function (it) { return shareCache[it.id] && shareCache[it.id].u === it.updated; });
     Promise.all(list.map(shareBlob)).then(function (bl) {
       var files = bl.map(function (b, i) { return new File([b], fname(list[i], b.type === 'image/webp' ? '.webp' : '.jpg'), { type: b.type || 'image/jpeg' }); });
-      if (ready || list.length === 1 && bl[0] === list[0].photo) { shareFiles(files, 'Varnana items'); return; }
+      if (ready) { shareFiles(files, 'Varnana items'); return; }
       pendingShare = { key: key, files: files };
       toast(list.length + (list.length === 1 ? ' photo' : ' photos') + ' ready.', 'Share', function () { var ps = pendingShare; pendingShare = null; if (ps) shareFiles(ps.files, 'Varnana items'); });
     });
@@ -1489,19 +1616,21 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   var V = { open: false, list: [], i: 0, s: 1, x: 0, y: 0, urls: [] };
   function openViewer(id, list) {
     V.list = list || visible(); V.i = Math.max(0, V.list.findIndex(function (x) { return x.id === id; }));
-    V.open = true; $('viewer').classList.remove('hidden', 'bare'); document.body.classList.add('noscroll'); vRender();
+    V.open = true; $('viewer').classList.remove('hidden', 'bare'); replay($('viewer'), 'enter'); document.body.classList.add('noscroll'); vRender();
   }
   function closeViewer() { V.open = false; $('viewer').classList.add('hidden'); document.body.classList.remove('noscroll'); V.urls.forEach(URL.revokeObjectURL); V.urls = []; renderHome(); }
   function vRender() {
-    V.urls.forEach(URL.revokeObjectURL); V.urls = [];
+    V.urls.forEach(URL.revokeObjectURL); V.urls = []; V.gen = (V.gen || 0) + 1;
     var slides = $('vtrack').children;
     for (var k = 0; k < 3; k++) {
       var it = V.list[V.i + k - 1], im = slides[k].firstChild; im.style.transition = 'none'; im.style.transform = '';
-      if (it && (it.photo || it.image)) { var u = URL.createObjectURL(it.photo || it.image); V.urls.push(u); im.src = u; slides[k].style.visibility = ''; }
-      else { im.removeAttribute('src'); slides[k].style.visibility = 'hidden'; }
+      im.removeAttribute('src');
+      if (it) { slides[k].style.visibility = ''; if (thumbUrls[it.id]) im.src = thumbUrls[it.id];
+        (function (im, it, gen) { photoOf(it).then(function (b) { if (!b || gen !== V.gen) return; var u = URL.createObjectURL(b); V.urls.push(u); im.src = u; }); })(im, it, V.gen); }
+      else slides[k].style.visibility = 'hidden';
     }
     V.s = 1; V.x = 0; V.y = 0; var tr = $('vtrack'); tr.style.transition = 'none'; tr.style.transform = ''; $('viewer').style.background = '';
-    vMeta(); var it0 = V.list[V.i]; if (it0 && it0.name) shareBlob(it0).catch(function () {});
+    vMeta(); var it0 = vCur(); if (it0) shareBlob(it0).catch(function () {});
   }
   function vCur() { var it = V.list[V.i]; return it && byId[it.id] ? byId[it.id] : it; }
   function vMeta() {
@@ -1584,7 +1713,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     var t = tel(it), mu = mapUrl(it);
     $('mCall').classList.toggle('hidden', t.length < 6); $('mWa').classList.toggle('hidden', t.length < 6); $('mMap').classList.toggle('hidden', !mu);
     $('mCall').href = 'tel:' + t; $('mWa').href = waUrl(t); if (mu) $('mMap').href = mu; openSheet('menuSheet');
-    if (it.name) shareBlob(it).catch(function () {});
+    shareBlob(it).catch(function () {});
   }
   $('mEdit').addEventListener('click', function () { closeSheets(); openEditor(menuIt); });
   $('mFav').addEventListener('click', function () { closeSheets(); setFav([menuIt]); });
@@ -1599,15 +1728,15 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     if (!list.length) return; delList = list; haptic('warn');
     var one = list.length === 1, it = list[0];
     $('dT').textContent = one ? 'Delete this photo?' : 'Delete ' + list.length + ' photos?';
-    $('dImg').src = url(thumbOf(it)); $('dName').textContent = one ? (it.name || 'Untitled') : list.length + ' photos';
+    $('dImg').removeAttribute('src'); thumbUrl(it.id).then(function (u) { if (u) $('dImg').src = u; }); $('dName').textContent = one ? (it.name || 'Untitled') : list.length + ' photos';
     $('dSub').textContent = one ? [it.no, it.cost != null ? rupee(it.cost) : '', it.shop].filter(Boolean).join(' · ') : 'Including ' + (it.name || it.no);
     $('dDrive').classList.toggle('hidden', !S.linked); openSheet('delSheet');
   }
   $('dYes').addEventListener('click', function () {
     var list = delList; delList = []; closeSheets(); haptic('warn');
     list.forEach(function (it) { tomb(it.id, true); });
-    Promise.all(list.map(function (it) { return dbGet(it.id); })).then(function (full) {
-      return Promise.all(list.map(function (it) { return del(it.id); })).then(function () {
+    Promise.all(list.map(function (it) { return Promise.all([dbGet(it.id), getMedia(it.id)]); })).then(function (full) {
+      return Promise.all(list.map(function (it) { return del(it.id).then(function () { return delMedia(it.id); }); })).then(function () {
         if (sel) endSelect();
         if (V.open) { V.list = V.list.filter(function (x) { return !list.some(function (d) { return d.id === x.id; }); }); if (!V.list.length) closeViewer(); else { V.i = Math.min(V.i, V.list.length - 1); vRender(); } }
         return load();
@@ -1615,7 +1744,8 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
         scheduleSync(8000);
         toast((list.length === 1 ? 'Photo' : list.length + ' photos') + ' deleted.', 'Undo', function () {
           list.forEach(function (it) { tomb(it.id, false); });
-          Promise.all(full.filter(Boolean).map(put)).then(load).then(function () { haptic('success'); toast('Restored.'); });
+          Promise.all(full.filter(function (f) { return f[0]; }).map(function (f) { return putMedia(f[0].id, f[1].photo, f[1].thumb).then(function () { return put(f[0]); }); }))
+            .then(load).then(function () { haptic('success'); toast('Restored.'); });
         });
       });
     });
@@ -1691,7 +1821,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     return (document.fonts ? document.fonts.ready : Promise.resolve()).then(loadLogo).then(function (logo) {
       return pages.reduce(function (p, pg, pi) {
         return p.then(function (arr) {
-          return Promise.all(pg.map(function (it) { return loadImg(it.photo || it.image).catch(function () { return null; }); })).then(function (imgs) {
+          return Promise.all(pg.map(function (it) { return photoOf(it).then(function (b) { return b ? loadImg(b) : null; }).catch(function () { return null; }); })).then(function (imgs) {
             var c = catPage(pg, imgs, pi, pages.length, per, logo); imgs.forEach(function (im) { if (im) URL.revokeObjectURL(im.src); });
             return new Promise(function (r) { c.toBlob(function (b) { arr.push(b); r(arr); }, 'image/jpeg', 0.86); });
           });
@@ -1765,7 +1895,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   $('backupBtn').addEventListener('click', function () {
     if (!items.length) { toast('Nothing to back up yet.'); return; }
     toast('Preparing backup…');
-    Promise.all(items.map(function (it) { return b64(it.photo || it.image).then(function (p) { var o = Object.assign({}, it); o.photo = p; delete o.image; delete o.thumb; return o; }); }))
+    items.reduce(function (pr, it) { return pr.then(function (arr) { return photoOf(it).then(b64).then(function (p) { var o = Object.assign({}, it); o.photo = p; arr.push(o); return arr; }); }); }, Promise.resolve([]))
       .then(function (arr) {
         var file = new File([JSON.stringify({ app: 'V Cam', version: VERSION, saved: Date.now(), albums: P.albums, items: arr })], 'V-Cam-backup-' + ymd(new Date()) + '.json', { type: 'application/json' });
         shareFile(file, function () { haptic('error'); toast('Sharing is not available here. Open V Cam from its Home Screen icon.'); });
@@ -1777,7 +1907,8 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     f.text().then(function (t) {
       var data = JSON.parse(t); if (!data || !Array.isArray(data.items)) throw new Error('bad');
       (data.albums || []).forEach(addAlbum);
-      return Promise.all(data.items.map(function (o) { return Promise.all([unb64(o.photo), unb64(o.image)]).then(function (p) { o.photo = p[0] || p[1]; delete o.image; delete o.thumb; delete o.synced; return put(o); }); }))
+      return data.items.reduce(function (pr, o) { return pr.then(function () { return Promise.all([unb64(o.photo), unb64(o.image)]).then(function (p) { var ph = p[0] || p[1]; delete o.photo; delete o.image; delete o.thumb; delete o.synced; delete o.lost;
+        return (ph ? putMedia(o.id, ph, null) : Promise.resolve()).then(function () { return put(o); }); }); }); }, Promise.resolve())
         .then(function () { return data.items.length; });
     }).then(function (n) { return load().then(function () { haptic('success'); closeSheets(); toast(n + ' items restored.'); }); })
       .catch(function () { haptic('error'); toast('That file is not a V Cam backup. Choose a file named V-Cam-backup.'); });
@@ -1901,26 +2032,29 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   }
   function bare(it) { var o = {}; Object.keys(it).forEach(function (k) { if (['photo', 'image', 'thumb', 'drive', 'synced', 'placeTried'].indexOf(k) < 0) o[k] = it[k]; }); return o; }
   function pushItem(it, remote, dir) {
-    var up = String(it.updated || it.created), files = remote || {}, ph = it.photo || it.image;
+    var up = String(it.updated || it.created), files = remote || {}, mv = String(it.mv || '');
+    return (files.photo && files.photo.mv === mv ? Promise.resolve(null) : photoOf(it)).then(function (ph) {
     var parts = [['meta', it.no + '.json', new Blob([JSON.stringify(bare(it))], { type: 'application/json' })]];
-    if (ph && (!files.photo || it.photoChanged !== false)) parts.push(['photo', it.no + '-photo' + (ph.type === 'image/webp' ? '.webp' : '.jpg'), ph]);
+    if (ph) parts.push(['photo', it.no + '-photo' + (ph.type === 'image/webp' ? '.webp' : '.jpg'), ph]);
     return parts.reduce(function (p, x) {
       return p.then(function () {
-        var meta = { name: x[1], appProperties: { vcam: '1', item: it.id, kind: x[0], updated: up } };
+        var meta = { name: x[1], appProperties: { vcam: '1', item: it.id, kind: x[0], updated: up, mv: mv } };
         if (!files[x[0]]) meta.parents = [dir];
         return upload(meta, x[2], files[x[0]] && files[x[0]].id);
       });
     }, Promise.resolve()).then(function () { return dbGet(it.id); }).then(function (f) { if (f) { f.synced = it.updated || it.created; return put(f); } });
+    });
   }
   function media(id) { return api('/files/' + id + '?alt=media').then(function (r) { return r.blob(); }); }
   function pullItem(remote) {
     return media(remote.meta.id).then(function (b) { return b.text(); }).then(function (t) {
       var it = JSON.parse(t), src = remote.photo || remote.image;
-      return (src ? media(src.id) : Promise.resolve(null)).then(function (bl) {
-        return dbGet(it.id).then(function (old) {
-          it.photo = bl ? new Blob([bl], { type: bl.type && bl.type !== 'application/octet-stream' ? bl.type : 'image/jpeg' }) : (old && old.photo);
-          if (old && old.thumb && !bl) it.thumb = old.thumb;
-          it.synced = it.updated || it.created; return put(it);
+      return dbGet(it.id).then(function (old) {
+        var need = src && (!old || String(old.mv || '') !== String(src.mv || '') || !old.mv);
+        return (need ? media(src.id) : Promise.resolve(null)).then(function (bl) {
+          var ph = bl ? new Blob([bl], { type: bl.type && bl.type !== 'application/octet-stream' ? bl.type : 'image/jpeg' }) : null;
+          it.synced = it.updated || it.created; delete it.lost;
+          return (ph ? putMedia(it.id, ph, null) : Promise.resolve()).then(function () { return put(it); });
         });
       });
     });
@@ -1935,7 +2069,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     var stats = { up: 0, down: 0, gone: 0 };
     folder().then(function (dir) {
       return Promise.all([listAll("appProperties has { key='vcam' and value='1' } and trashed=false"), getAll()]).then(function (r) {
-        var remote = {}; r[0].forEach(function (f) { var a = f.appProperties || {}; (remote[a.item] = remote[a.item] || {})[a.kind] = { id: f.id, updated: +a.updated }; });
+        var remote = {}; r[0].forEach(function (f) { var a = f.appProperties || {}; (remote[a.item] = remote[a.item] || {})[a.kind] = { id: f.id, updated: +a.updated, mv: a.mv || '' }; });
         var local = {}; r[1].forEach(function (it) { local[it.id] = it; });
         var jobs = [], dead = S.dead || [];
         dead.forEach(function (id) { if (remote[id]) { stats.gone++; Object.keys(remote[id]).forEach(function (k) { jobs.push(function () { return api('/files/' + remote[id][k].id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: '{"trashed":true}' }); }); }); } });
@@ -1943,7 +2077,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
           var it = local[id], rm = remote[id]; if (it.draft || dead.indexOf(id) > -1) return;
           var lu = it.updated || it.created;
           if (!rm || !rm.meta) {
-            if (it.synced) { stats.gone++; jobs.push(function () { return del(id); }); }
+            if (it.synced) { stats.gone++; jobs.push(function () { return del(id).then(function () { return delMedia(id); }); }); }
             else { stats.up++; jobs.push(function () { return pushItem(it, rm, dir); }); }
           } else if (lu > rm.meta.updated) { stats.up++; jobs.push(function () { return pushItem(it, rm, dir); }); }
           else if (lu < rm.meta.updated) { stats.down++; jobs.push(function () { return pullItem(rm); }); }
@@ -1993,7 +2127,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     var reloaded = false; navigator.serviceWorker.addEventListener('controllerchange', function () { if (!reloaded) { reloaded = true; location.reload(); } });
   }
 
-  load().then(function () { try { if (!localStorage.getItem('vcam-setup')) { localStorage.setItem('vcam-setup', '1'); setTimeout(function () { openSheet('helpSheet'); }, 1400); } } catch (e) {} })
+  migrate().catch(function () {}).then(load).then(function () { try { if (!localStorage.getItem('vcam-setup')) { localStorage.setItem('vcam-setup', '1'); setTimeout(function () { openSheet('helpSheet'); }, 1400); } } catch (e) {} })
     .catch(function () { toast('Storage is blocked. Open V Cam in Safari, not a private tab.'); });
   window.__vcam = { visible: visible, F: F, P: P, items: function () { return items; } };   // for testing
 })();

@@ -1,7 +1,7 @@
 // V Cam offline support. Bump VERSION with every release: the app then offers "Reload" and keeps all saved items.
-const VERSION = '1.7';
+const VERSION = '2.0';
 const CACHE = 'v-cam-' + VERSION;
-const FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png', './icon-1024.png', './icon-maskable-512.png'];
+const FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png', './icon-1024.png', './icon-maskable-512.png', './brand-lockup.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)));

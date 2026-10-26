@@ -96,7 +96,34 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
 .shoot button { height: 62px; border: 0; border-radius: 999px; display: flex; align-items: center; gap: 10px; font-family: var(--display); font-size: 1.05em; box-shadow: 0 10px 26px var(--shadow); white-space: nowrap; }
 .shoot #camBtn { padding: 0 26px; background: var(--brand); color: #FDFBF7; }
 .shoot #camBtn:active { background: var(--brand-press); }
-.shoot #galBtn { padding: 0 20px; background: var(--surface); color: var(--accent); border: 1.5px solid var(--gold); }
+.shoot #galBtn, .shoot #burstBtn { width: 62px; padding: 0; flex-direction: column; justify-content: center; gap: 1px; background: var(--surface); color: var(--accent); border: 1.5px solid var(--gold); font-size: 10.5px; letter-spacing: .02em; }
+.shoot #galBtn svg.i, .shoot #burstBtn svg.i { width: 22px; height: 22px; }
+.todo { width: 100%; margin-top: 10px; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 14px; border-radius: 12px; border: 1.5px dashed var(--gold); background: var(--soft); color: var(--ink); text-align: left; font-size: .95em; }
+.todo b { font-family: var(--display); font-weight: 500; color: var(--accent); }
+.todo span { flex: 1; }
+.tag.need { color: var(--bad); border-color: var(--bad); }
+/* burst camera */
+.burst { position: fixed; inset: 0; z-index: 80; background: #000; color: #fff; }
+.burst video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.burst .top, .burst .bot { position: absolute; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; }
+.burst .top { top: 0; padding-top: calc(10px + env(safe-area-inset-top, 0px)); height: calc(64px + env(safe-area-inset-top, 0px)); background: linear-gradient(rgba(0,0,0,.55), transparent); }
+.burst .bot { bottom: 0; padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px)); padding-top: 26px; background: linear-gradient(transparent, rgba(0,0,0,.6)); }
+.burst .cnt { font-family: var(--display); font-size: 17px; background: rgba(0,0,0,.45); padding: 6px 14px; border-radius: 999px; }
+.burst .ib { color: #fff; }
+.burst .shut { width: 82px; height: 82px; border-radius: 50%; border: 5px solid #fff; background: #C5A059; padding: 0; }
+.burst .shut:active { transform: scale(.9); background: #fff; }
+.burst .thumb { width: 58px; height: 58px; border-radius: 12px; border: 2px solid #fff; object-fit: cover; background: rgba(255,255,255,.15); }
+.burst .done { min-width: 76px; height: 48px; border-radius: 999px; border: 0; background: #FDFBF7; color: #5B0E2D; font-family: var(--display); font-size: 16px; }
+.burst .flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+.burst .flash.go { animation: fl .25s ease; }
+@keyframes fl { 0% { opacity: .85; } 100% { opacity: 0; } }
+.burst .hint { position: absolute; left: 0; right: 0; top: calc(78px + env(safe-area-inset-top, 0px)); text-align: center; font-size: 14px; color: rgba(255,255,255,.85); text-shadow: 0 1px 3px #000; }
+.confirm .row2 { display: flex; gap: 10px; margin-top: 16px; }
+.confirm .row2 button { flex: 1; min-height: 52px; border-radius: 14px; font-family: var(--display); font-size: 1em; }
+.confirm .no { border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); }
+.confirm .yes { border: 0; background: #A3271F; color: #fff; }
+.confirm .who { display: flex; gap: 12px; align-items: center; margin-top: 10px; }
+.confirm .who img { width: 64px; height: 64px; border-radius: 10px; object-fit: cover; }
 .shoot svg.i { width: 26px; height: 26px; }
 
 /* editor */
@@ -130,7 +157,7 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
 .dock .sec { padding: 0 16px; border: 1.5px solid var(--gold); background: none; color: var(--accent); }
 
 /* toast (top) */
-.toast { position: fixed; left: 50%; top: calc(64px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 50; max-width: calc(100% - 28px);
+.toast { position: fixed; left: 50%; top: calc(64px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 50; width: max-content; max-width: calc(100% - 28px); min-width: min(330px, calc(100% - 28px)); justify-content: space-between;
   background: var(--ink); color: var(--bg); border-radius: 12px; padding: 11px 14px; font-size: .92em; display: flex; align-items: center; gap: 14px; box-shadow: 0 8px 24px var(--shadow); }
 .toast button { border: 0; background: none; color: var(--gold); font-family: var(--display); font-weight: 600; min-height: 36px; padding: 0 4px; }
 
@@ -189,6 +216,7 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
   <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M5 12v8h14v-8"/></symbol>
   <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18h10.5a4 4 0 0 0 .5-8 6 6 0 0 0-11.6 1.5A3.3 3.3 0 0 0 7 18z"/><path d="M9.5 13.5l2.5-2.5 2.5 2.5M12 11v5"/></symbol>
   <symbol id="i-gallery" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></symbol>
+  <symbol id="i-burst" viewBox="0 0 24 24"><rect x="7" y="7" width="13" height="11" rx="2"/><circle cx="13.5" cy="12.5" r="2.6"/><path d="M4 15V6a2 2 0 0 1 2-2h10"/></symbol>
   <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7"/><path d="M12 17h.01"/></symbol>
 </svg>
 
@@ -205,8 +233,9 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
   <section id="home">
     <div class="sum" id="sum"></div>
     <label class="search"><svg class="i"><use href="#i-search"/></svg><span class="sr">Search</span><input id="q" type="search" placeholder="Search name or shop" autocomplete="off"></label>
+    <button type="button" class="todo hidden" id="todoBar"><svg class="i"><use href="#i-edit"/></svg><span id="todoTxt"></span><b>Fill now</b></button>
     <ul class="list" id="list"></ul>
-    <div class="empty hidden" id="empty"><img src="icon-180.png" alt=""><b>No items yet</b>Tap <span class="k">Take photo</span>, or <span class="k">Gallery</span> to add photos you already have.</div>
+    <div class="empty hidden" id="empty"><img src="icon-180.png" alt=""><b>No items yet</b>Tap <span class="k">Take photo</span> for one item, <span class="k">Burst</span> to shoot many quickly, or <span class="k">Gallery</span> for photos you already have.</div>
     <p class="ver" id="ver"></p>
   </section>
 
@@ -236,7 +265,7 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
   </section>
 </main>
 
-<div class="shoot" id="shoot"><button type="button" id="camBtn"><svg class="i"><use href="#i-cam"/></svg>Take photo</button><button type="button" id="galBtn" aria-label="Choose from gallery"><svg class="i"><use href="#i-gallery"/></svg>Gallery</button></div>
+<div class="shoot" id="shoot"><button type="button" id="galBtn" aria-label="Choose from gallery"><svg class="i"><use href="#i-gallery"/></svg>Gallery</button><button type="button" id="camBtn"><svg class="i"><use href="#i-cam"/></svg>Take photo</button><button type="button" id="burstBtn" aria-label="Burst: take many photos"><svg class="i"><use href="#i-burst"/></svg>Burst</button></div>
 <div class="dock hidden" id="dock">
   <button class="sec" type="button" id="saveOnly"><svg class="i"><use href="#i-check"/></svg>Save</button>
   <button class="pri" type="button" id="saveBtn"><svg class="i"><use href="#i-save"/></svg>Save to Photos</button>
@@ -258,6 +287,21 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
     <button type="button" class="t" id="lockAlt">Cancel</button><button type="button">0</button><button type="button" class="t" data-k="del" aria-label="Delete digit">⌫</button>
   </div>
 </div>
+
+<div class="burst hidden" id="burst" role="dialog" aria-modal="true" aria-label="Burst camera">
+  <video id="bv" playsinline muted autoplay></video>
+  <div class="flash" id="bflash"></div>
+  <div class="top"><button class="ib" type="button" id="bClose" aria-label="Close camera"><svg class="i"><use href="#i-x"/></svg></button><span class="cnt" id="bCnt">0 photos</span><span style="width:44px"></span></div>
+  <div class="hint" id="bHint">Tap the gold button for each item. Add details later.</div>
+  <div class="bot"><img class="thumb" id="bThumb" alt=""><button class="shut" type="button" id="bShut" aria-label="Take photo"></button><button class="done" type="button" id="bDone">Done</button></div>
+</div>
+
+<div class="sheet hidden confirm" id="delSheet" role="dialog" aria-modal="true" aria-labelledby="dT"><div class="panel">
+  <div class="grab"><h2 id="dT">Delete this item?</h2><button class="ib" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+  <div class="who"><img id="dImg" alt=""><div><div class="k" id="dName"></div><div style="font-size:.88em;color:var(--muted)" id="dSub"></div></div></div>
+  <p style="color:var(--muted);font-size:.92em;margin:12px 0 0">It is removed from V Cam<span id="dDrive"> and from Google Drive</span>. Photos already saved in your Photos app stay.</p>
+  <div class="row2"><button type="button" class="no" data-close>Keep it</button><button type="button" class="yes" id="dYes">Delete</button></div>
+</div></div>
 
 <div class="toast hidden" id="toast" role="status"><span id="toastMsg"></span><button type="button" id="toastAct" class="hidden"></button></div>
 
@@ -334,7 +378,7 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
 <script>
 (function () {
   'use strict';
-  var VERSION = '1.5';
+  var VERSION = '1.6';
   var $ = function (id) { return document.getElementById(id); };
 
   // ---------- preferences ----------
@@ -410,7 +454,8 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
       var t = document.createElement('div'); t.style.minWidth = '0';
       var n = document.createElement('div'); n.className = 'n'; n.textContent = it.name || 'Untitled item';
       if (it.draft) { var dg = document.createElement('span'); dg.className = 'tag'; dg.textContent = 'Draft'; n.appendChild(dg); }
-      var s = document.createElement('div'); s.className = 's'; s.textContent = [it.no, it.shop, sayDate(it.created)].filter(Boolean).join(' · ');
+      else if (needsInfo(it)) { var nd = document.createElement('span'); nd.className = 'tag need'; nd.textContent = 'Add info'; n.appendChild(nd); }
+      var s = document.createElement('div'); s.className = 's'; s.textContent = [it.no, it.name ? it.shop : '', sayDate(it.created)].filter(Boolean).join(' · ');
       t.appendChild(n); t.appendChild(s); b.appendChild(t);
       var p = document.createElement('div'); p.className = 'p'; p.textContent = it.cost != null ? rupee(it.cost) : '–';
       var mg = margin(it.cost, it.sell);
@@ -431,7 +476,7 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
       }, { passive: true });
       b.addEventListener('touchend', function () {
         clearTimeout(lp); b.style.transition = ''; b.style.transform = '';
-        if (lockAxis === 'x') { fired = true; if (dx > 90) share(it.image || it.photo, it); else if (dx < -90) deleteItem(it); }
+        if (lockAxis === 'x') { fired = true; if (dx > 90) share(it.image || it.photo, it); else if (dx < -90) askDelete(it); }
         li.classList.remove('armed'); sx = null;
       }, { passive: true });
       b.addEventListener('touchcancel', function () { clearTimeout(lp); b.style.transform = ''; sx = null; }, { passive: true });
@@ -440,6 +485,8 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
       li.appendChild(b); list.appendChild(li);
     });
     $('empty').classList.toggle('hidden', items.length > 0);
+    var todo = todoList(); $('todoBar').classList.toggle('hidden', !todo.length);
+    $('todoTxt').textContent = todo.length + (todo.length === 1 ? ' photo needs' : ' photos need') + ' details';
     var ms = items.map(function (it) { return margin(it.cost, it.sell); }).filter(Boolean);
     var sum = $('sum'); sum.textContent = '';
     [[items.length, items.length === 1 ? 'item' : 'items'], [rupee(items.reduce(function (a, it) { return a + (it.cost || 0); }, 0)), 'total cost'],
@@ -448,6 +495,8 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
     });
     $('ver').textContent = 'V Cam · version ' + VERSION + ' · Varnana.in';
   }
+  function needsInfo(it) { return !it.name || it.cost == null; }
+  function todoList() { return items.filter(function (it) { return it.draft || needsInfo(it); }).sort(function (a, b) { return a.created - b.created; }); }
   function load() { return getAll().then(function (all) { items = all.sort(function (a, b) { return b.created - a.created; }); renderHome(); }); }
   $('q').addEventListener('input', renderHome);
 
@@ -469,6 +518,12 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
   // Camera: one photo. Gallery: pick one or many; they open one after another ("Save & next").
   var queue = [], replacing = false;
   $('camBtn').addEventListener('click', function () { cur = null; queue = []; $('camIn').value = ''; $('camIn').click(); });
+  function fillTodo() {
+    var t = todoList(); if (!t.length) return;
+    queue = t.slice(1); openEditor(t[0]);
+    if (queue.length) toast((queue.length + 1) + ' to fill. Skip any with Save & next.');
+  }
+  $('todoBar').addEventListener('click', fillTodo);
   $('galBtn').addEventListener('click', function () { cur = null; replacing = false; $('libIn').value = ''; $('libIn').click(); });
   $('retake').addEventListener('click', function () { $('camIn').value = ''; $('camIn').click(); });
   $('regal').addEventListener('click', function () { replacing = true; $('libIn').value = ''; $('libIn').click(); });
@@ -481,11 +536,14 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
   });
   function nextOrClose() {
     if (!queue.length) { closeEditor(); return; }
-    var f = queue.shift(); closeEditor().then(function () { gotPhoto(f); toast(queue.length ? queue.length + ' more after this.' : 'Last photo.'); });
+    var f = queue.shift(); closeEditor().then(function () {
+      if (f instanceof Blob) gotPhoto(f); else { var fresh = items.find(function (x) { return x.id === f.id; }); if (fresh) openEditor(fresh); else { nextOrClose(); return; } }
+      toast(queue.length ? queue.length + ' more after this.' : 'Last one.');
+    });
   }
   // leaving with photos still waiting: keep them as drafts so nothing is lost
   function queueToDrafts() {
-    var fs = queue; queue = []; if (!fs.length) return Promise.resolve(0);
+    var fs = queue.filter(function (f) { return f instanceof Blob; }); queue = []; if (!fs.length) return Promise.resolve(0);
     var last = lastItem(), base = parseInt(nextNo().slice(2), 10);
     return fs.reduce(function (p, f, i) { return p.then(function () { return normalise(f, 0).then(function (b) {
       return put({ id: 'it' + Date.now().toString(36) + i, no: 'V-' + String(base + i).padStart(4, '0'), created: Date.now() + i, name: '', cost: null, sell: null, points: [],
@@ -524,7 +582,7 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
   }
   function openEditor(it) {
     cur = Object.assign({}, it); showEditorShell();
-    loadImg(it.photo).then(function (i) { img = i; fillForm(); });
+    loadImg(it.photo).then(function (i) { img = i; fillForm(); updateDock(); if (!cur.name) setTimeout(function () { $('name').focus(); }, 250); });
   }
   function closeEditor() {
     $('editor').classList.add('hidden'); $('home').classList.remove('hidden'); $('shoot').classList.remove('hidden'); $('dock').classList.add('hidden');
@@ -655,13 +713,51 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
     } else fallback(blob);
   }
   function fallback(blob) { $('savedImg').src = url(blob); openSheet('saveSheet'); }
-  function needName() { if (cur.name) return false; haptic('error'); toast('Add the item name first.'); $('name').focus(); return true; }
+  function needName() { return false; }   // every field is optional; fill in later from "Add info"
   $('saveBtn').addEventListener('click', function () {
     readForm(); if (needName()) return;
     if (!prepared) { toast('Preparing the photo… tap again.'); redraw(); return; }
     var it = Object.assign({}, cur); finalSave().then(load); share(prepared, it, nextOrClose);
   });
   $('saveOnly').addEventListener('click', function () { readForm(); if (needName()) return; finalSave().then(function () { haptic('success'); toast('Saved in V Cam.'); nextOrClose(); }); });
+
+  // ---------- burst camera: many photos fast, details later ----------
+  var stream = null, bCount = 0, bNo = 0, bBusy = 0;
+  function openBurst() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast('Burst needs the camera inside the app. Open V Cam from its Home Screen icon.'); return; }
+    navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 } } }).then(function (s) {
+      stream = s; var v = $('bv'); v.srcObject = s; v.play().catch(function () {});
+      bCount = 0; bNo = parseInt(nextNo().slice(2), 10); $('bCnt').textContent = '0 photos'; $('bThumb').removeAttribute('src');
+      $('bHint').classList.remove('hidden'); $('burst').classList.remove('hidden'); $('shoot').style.visibility = 'hidden';
+    }).catch(function (e) {
+      haptic('error');
+      toast(e && e.name === 'NotAllowedError' ? 'Camera is blocked. iPhone Settings → Safari → Camera → Allow, then try again.' : 'Could not start the camera. Use Take photo instead.');
+    });
+  }
+  function closeBurst() {
+    if (stream) stream.getTracks().forEach(function (t) { t.stop(); }); stream = null;
+    $('burst').classList.add('hidden'); $('shoot').style.visibility = '';
+    var n = bCount; (function wait() { if (bBusy) return setTimeout(wait, 150); load().then(function () {
+      scheduleSync(); if (n) toast(n + (n === 1 ? ' photo' : ' photos') + ' saved. Add details now or later.', 'Fill now', fillTodo);
+    }); })();
+  }
+  $('burstBtn').addEventListener('click', openBurst);
+  $('bClose').addEventListener('click', closeBurst); $('bDone').addEventListener('click', closeBurst); $('bThumb').addEventListener('click', closeBurst);
+  $('bShut').addEventListener('click', function () {
+    var v = $('bv'), w = v.videoWidth, h = v.videoHeight; if (!w) return;
+    var sc = Math.min(1, 1600 / Math.max(w, h)), c = document.createElement('canvas'); c.width = Math.round(w * sc); c.height = Math.round(h * sc);
+    c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+    var fl = $('bflash'); fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go'); haptic('tap');
+    bCount++; $('bCnt').textContent = bCount + (bCount === 1 ? ' photo' : ' photos'); $('bHint').classList.add('hidden');
+    var no = 'V-' + String(bNo++).padStart(4, '0'), t = Date.now(), last = lastItem(); bBusy++;
+    c.toBlob(function (b) {
+      $('bThumb').src = url(b);
+      put({ id: 'it' + t.toString(36) + bCount, no: no, created: t, updated: t, name: '', cost: null, sell: null, points: [],
+            shop: last ? last.shop || '' : '', contact: last ? last.contact || '' : '', showSell: P.showSell, showShop: P.showShop, draft: false, burst: true, photo: b })
+        .catch(function () { toast('A photo could not be saved. Storage may be full.'); }).then(function () { bBusy--; });
+    }, 'image/jpeg', 0.88);
+  });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden' && stream) closeBurst(); });
 
   // ---------- long-press menu ----------
   var menuIt = null;
@@ -678,7 +774,15 @@ main { max-width: 640px; margin: 0 auto; padding: 12px max(14px, env(safe-area-i
     tomb(it.id, true);
     del(it.id).then(load).then(function () { scheduleSync(8000); toast('Item deleted.', 'Undo', function () { tomb(it.id, false); put(it).then(load).then(function () { haptic('success'); toast('Item restored.'); }); }); });
   }
-  $('mDel').addEventListener('click', function () { var it = menuIt; closeSheets(); deleteItem(it); });
+  var delIt = null;
+  function askDelete(it) {
+    delIt = it; haptic('warn');
+    $('dImg').src = url(it.image || it.photo); $('dName').textContent = it.name || 'Untitled item';
+    $('dSub').textContent = [it.no, it.cost != null ? rupee(it.cost) : '', it.shop].filter(Boolean).join(' · ');
+    $('dDrive').classList.toggle('hidden', !S.linked); openSheet('delSheet');
+  }
+  $('dYes').addEventListener('click', function () { var it = delIt; closeSheets(); if (it) deleteItem(it); delIt = null; });
+  $('mDel').addEventListener('click', function () { var it = menuIt; closeSheets(); setTimeout(function () { askDelete(it); }, 60); });
 
   // ---------- sheets: × close, tap outside, swipe down ----------
   function openSheet(id) { $(id).classList.remove('hidden'); $('shoot').style.visibility = 'hidden'; }

@@ -732,7 +732,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
 <script>
 (function () {
   'use strict';
-  var VERSION = '2.5';
+  var VERSION = '2.6';
   var $ = function (id) { return document.getElementById(id); };
   var WHOM = ['Husband / Wife', 'Friend (Boy/Girl)', 'Brother / Sister', 'Father', 'Mother', 'Kids'];
   var OCC = ['Birthday', 'Anniversary', 'Wedding', 'Engagement', 'Corporate', 'Housewarming', 'Seemantham', 'Barasala', 'Half-Saree', 'Just for fun'];
@@ -1388,7 +1388,9 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     C.target = target === 'extra' && cur ? 'extra' : null;
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { if (C.target) { picking = true; $('addIn').value = ''; $('addIn').click(); } else systemCamera(); return; }
     geoStart();
-    startStream().then(function () {
+    // reuse the camera if it is still ready from earlier in this session (so iPhone doesn't ask again)
+    var live = C.stream && C.track && C.track.readyState === 'live';
+    (live ? Promise.resolve().then(function () { clearTimeout(C.idleT); C.track.enabled = true; $('cv').play().catch(function () {}); }) : startStream()).then(function () {
       C.count = 0; C.last = null; $('cThumbImg').classList.add('hidden'); setMode(P.camMode); camCount();
       $('cam').classList.remove('hidden'); replay($('cam'), 'enter'); document.body.classList.add('noscroll');
       requestAnimationFrame(function () { setMode(P.camMode); }); camShop();
@@ -1488,7 +1490,10 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     setTimeout(function () { closeCamera(true).then(function () { cam.classList.remove('fadeout'); }); }, 280);
   }
   function closeCamera(quiet) {
-    guideStop(); stopStream(); geoStop(); $('cam').classList.add('hidden'); document.body.classList.remove('noscroll');
+    guideStop(); geoStop(); $('cam').classList.add('hidden'); document.body.classList.remove('noscroll');
+    // keep the camera ready (paused) for 10 minutes instead of switching it off, so the next open needs no permission
+    if (C.track) { if (C.torch) { try { C.track.applyConstraints({ advanced: [{ torch: false }] }); } catch (e) {} C.torch = false; $('cTorch').classList.remove('on'); }
+      C.track.enabled = false; try { $('cv').pause(); } catch (e) {} clearTimeout(C.idleT); C.idleT = setTimeout(stopStream, 10 * 60000); }
     var n = C.count;
     var wasExtra = C.target === 'extra'; C.target = null;
     return new Promise(function (res) { (function wait() { if (C.busy) return setTimeout(wait, 120); res(); })(); }).then(function () {
@@ -1501,7 +1506,10 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   $('cClose').addEventListener('click', function () { closeCamera(); });
   $('cDone').addEventListener('click', function () { closeCamera(); });
   $('cThumb').addEventListener('click', function () { if (C.target) { closeCamera(true); return; } var it = C.last; if (!it) return; closeCamera(true).then(function () { openViewer(it.id); }); });
-  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden' && C.stream) closeCamera(); });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'hidden') return;
+    if (!$('cam').classList.contains('hidden')) closeCamera(); clearTimeout(C.idleT); stopStream();
+  });
   $('camBtn').addEventListener('click', function () {
     openCamera();
   });

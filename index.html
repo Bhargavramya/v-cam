@@ -694,6 +694,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     <p class="mut" id="syncSt">Not connected</p>
     <label class="f hidden" id="cidRow"><span>Google sign-in key (Client ID)</span><input id="cid" placeholder="…apps.googleusercontent.com" autocapitalize="off" spellcheck="false"></label>
     <button class="wide" type="button" id="syncBtn"><svg class="i"><use href="#i-cloud"/></svg>Connect Google Drive</button>
+    <button class="wide hidden" type="button" id="sheetBtn"><svg class="i"><use href="#i-list"/></svg>Open the "V Cam Items" sheet</button>
     <button class="wide hidden" type="button" id="unlinkBtn">Disconnect</button>
     <h3>Privacy</h3>
     <div class="srow2"><label for="pLock">App lock (PIN)</label><input type="checkbox" class="sw" id="pLock"></div>
@@ -732,7 +733,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
 <script>
 (function () {
   'use strict';
-  var VERSION = '2.6';
+  var VERSION = '2.7';
   var $ = function (id) { return document.getElementById(id); };
   var WHOM = ['Husband / Wife', 'Friend (Boy/Girl)', 'Brother / Sister', 'Father', 'Mother', 'Kids'];
   var OCC = ['Birthday', 'Anniversary', 'Wedding', 'Engagement', 'Corporate', 'Housewarming', 'Seemantham', 'Barasala', 'Half-Saree', 'Just for fun'];
@@ -2388,7 +2389,8 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
           else if (lu < rm.meta.updated) { stats.down++; jobs.push(function () { return pullItem(rm); }); }
         });
         Object.keys(remote).forEach(function (id) { if (!local[id] && dead.indexOf(id) < 0 && remote[id].meta) { stats.down++; jobs.push(function () { return pullItem(remote[id]); }); } });
-        return jobs.reduce(function (p, j) { return p.then(j); }, Promise.resolve());
+        return jobs.reduce(function (p, j) { return p.then(j); }, Promise.resolve())
+          .then(function () { if (stats.up || stats.down || stats.gone || !S.sheetAt || loud) return writeSheet(dir).catch(function () {}); });
       });
     }).then(function () {
       S.dead = []; S.last = Date.now(); saveS(); syncing = false; syncStatus(); if (!cur && !V.open) load();
@@ -2400,13 +2402,40 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
       if (loud) { haptic('error'); toast('Sync did not finish. Check the internet and tap Sync now again.'); }
     });
   }
+  // ---------- live Google Sheet: "V Cam Items" in the V Cam folder, rewritten after each sync ----------
+  function sheetId(dir) {
+    if (S.sheet) return Promise.resolve(S.sheet);
+    return listAll("appProperties has { key='vcam' and value='sheet' } and trashed=false").then(function (f) {
+      if (f.length) return f[0].id;
+      return api('/files?fields=id', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'V Cam Items', mimeType: 'application/vnd.google-apps.spreadsheet', parents: [dir], appProperties: { vcam: 'sheet' } }) }).then(function (r) { return r.json(); }).then(function (j) { return j.id; });
+    }).then(function (id) { S.sheet = id; saveS(); return id; });
+  }
+  function writeSheet(dir) {
+    return Promise.all([sheetId(dir), listAll("appProperties has { key='vcam' and value='1' } and trashed=false"), getAll()]).then(function (r) {
+      var sid = r[0], links = {}; r[1].forEach(function (f) { var a = f.appProperties || {}; if (a.kind === 'photo') links[a.item] = f.id; });
+      var rows = [['Item no', 'Name', 'Cost', 'Selling price', 'Margin', 'Margin %', 'Details', 'Shop', 'Contact', 'Place', 'Album', 'Favourite', 'For whom', 'Occasion', 'Photos', 'Date', 'Photo']];
+      r[2].filter(function (it) { return !it.draft; }).sort(function (a, b) { return when(a) - when(b); }).forEach(function (it) {
+        var mg = margin(it.cost, it.sell);
+        rows.push([it.no, it.name || '', it.cost != null ? it.cost : '', it.sell != null ? it.sell : '', mg ? Math.round(mg.m) : '', mg ? Math.round(mg.pct) + '%' : '',
+          (it.points || []).join(' • '), it.shop || '', it.contact ? "'" + it.contact : '', it.place || '', it.album || '', it.fav ? 'Yes' : '',
+          (it.whom || []).join(', '), (it.occ || []).join(', '), 1 + (it.extra || []).length, ymd(when(it)),
+          links[it.id] ? '=HYPERLINK("https://drive.google.com/file/d/' + links[it.id] + '/view","Open")' : '']);
+      });
+      var SH = 'https://sheets.googleapis.com/v4/spreadsheets/' + sid;
+      return api(SH + '/values/A:Z:clear', { method: 'POST' }, true)
+        .then(function () { return api(SH + '/values/A1?valueInputOption=USER_ENTERED', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ values: rows }) }, true); })
+        .then(function () { S.sheetAt = Date.now(); saveS(); });
+    });
+  }
+  $('sheetBtn').addEventListener('click', function () { if (S.sheet) window.open('https://docs.google.com/spreadsheets/d/' + S.sheet, '_blank'); });
   function syncStatus(msg) {
     var st = $('syncSt'); st.textContent = '';
     $('cidRow').classList.toggle('hidden', !!GOOGLE_CLIENT_ID || !!S.linked); $('cid').value = S.cid || '';
-    $('unlinkBtn').classList.toggle('hidden', !S.linked);
+    $('unlinkBtn').classList.toggle('hidden', !S.linked); $('sheetBtn').classList.toggle('hidden', !S.linked || !S.sheet);
     $('syncBtn').lastChild.textContent = S.linked ? (tokenOk() ? 'Sync now' : 'Sign in & sync') : 'Connect Google Drive';
     if (msg) { st.textContent = msg; return; }
-    if (!S.linked) { st.textContent = 'Keep photos safe in your Google Drive and see them on other devices.'; return; }
+    if (!S.linked) { st.textContent = 'Photos backed up to your Google Drive, and a "V Cam Items" Google Sheet that updates by itself.'; return; }
     var b = document.createElement('b'); b.textContent = 'Connected'; b.style.color = 'var(--ok)'; st.appendChild(b);
     st.appendChild(document.createTextNode(S.last ? ' · last synced ' + sayDate(S.last) + ', ' + sayTime(S.last) : ' · not synced yet'));
   }

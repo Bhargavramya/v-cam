@@ -430,6 +430,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   <button class="ib txt hidden" id="selAll" type="button">All</button>
   <button class="ib hidden" id="favBtn" type="button" aria-label="Favourite" aria-pressed="false"><svg class="i"><use href="#i-star"/></svg></button>
   <button class="ib" id="shopsBtn" type="button" aria-label="Shops"><svg class="i"><use href="#i-shop"/></svg></button>
+  <button class="ib" id="ideasBtn2" type="button" aria-label="Friends' Ideas"><svg class="i"><use href="#i-share"/></svg></button>
   <button class="ib txt" id="selBtn" type="button">Select</button>
   <button class="ib" id="setBtn" type="button" aria-label="Settings"><svg class="i"><use href="#i-gear"/></svg></button>
 </header>
@@ -597,6 +598,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
 <div class="sheet hidden" id="albEdit" role="dialog" aria-modal="true" aria-labelledby="aeT"><div class="panel">
   <div class="grab"><h2 id="aeT">Album</h2><button class="ib" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
   <div class="newalb"><label class="sr" for="albName">Album name</label><input id="albName" maxlength="40" autocapitalize="words"><button type="button" id="albRen">Rename</button></div>
+  <button class="wide" type="button" id="albShare"><svg class="i"><use href="#i-share"/></svg>Share this album with a friend</button>
   <p class="mut" style="margin-top:14px">Deleting an album keeps its photos; they stay in All.</p>
   <button class="wide" type="button" id="albDel" style="color:var(--bad);border-color:var(--bad)">Delete album</button>
 </div></div>
@@ -696,6 +698,10 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
     <button class="wide" type="button" id="syncBtn"><svg class="i"><use href="#i-cloud"/></svg>Connect Google Drive</button>
     <button class="wide hidden" type="button" id="sheetBtn"><svg class="i"><use href="#i-list"/></svg>Open the "V Cam Items" sheet</button>
     <button class="wide hidden" type="button" id="unlinkBtn">Disconnect</button>
+    <h3>Friends &amp; Sharing</h3>
+    <p class="mut">Share an album with a friend — they open your link with no sign-in, and can see &amp; add items. One-time free setup needed first.</p>
+    <label class="f"><span>Sharing key (Apps Script link)</span><input id="shareApi" placeholder="https://script.google.com/macros/s/…/exec" autocapitalize="off" spellcheck="false"></label>
+    <button class="wide" type="button" id="ideasBtn"><svg class="i"><use href="#i-share"/></svg>Friends' Ideas board</button>
     <h3>Privacy</h3>
     <div class="srow2"><label for="pLock">App lock (PIN)</label><input type="checkbox" class="sw" id="pLock"></div>
     <button class="wide hidden" type="button" id="chPin">Change PIN</button>
@@ -723,6 +729,30 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   <ol><li><span class="k">Save to Photos</span> (or select many → <span class="k">Photos</span>) → tap <span class="k">Save to Varnana Items</span>.</li></ol>
 </div></div>
 
+<div class="sheet hidden" id="sharedAlbSheet" role="dialog" aria-modal="true" aria-labelledby="saT"><div class="panel">
+  <div class="grab"><h2 id="saT">Shared album</h2><button class="ib" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+  <p class="mut" id="saSub"></p>
+  <div id="saFeed"></div>
+  <h3 class="lbl">Add a new item</h3>
+  <label class="f"><span>Your name</span><input id="saAuthor" maxlength="30" placeholder="So they know it's you"></label>
+  <label class="f"><span>Item name</span><input id="saName" maxlength="70"></label>
+  <label class="f"><span>Price</span><div class="money"><input id="saSell" inputmode="decimal" placeholder="0"></div></label>
+  <label class="f"><span>Notes</span><textarea id="saPoints" placeholder="• One point per line"></textarea></label>
+  <label class="f"><span>Photo</span><input id="saPhoto" type="file" accept="image/*"></label>
+  <button class="wide" type="button" id="saAdd"><svg class="i"><use href="#i-edit"/></svg>Add to album</button>
+</div></div>
+
+<div class="sheet hidden" id="ideasSheet" role="dialog" aria-modal="true" aria-labelledby="idT"><div class="panel">
+  <div class="grab"><h2 id="idT">Friends' Ideas</h2><button class="ib" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+  <p class="mut">Business thoughts, item names, reference links &amp; photos — everyone with a V Cam share link can see and add here.</p>
+  <label class="f"><span>Your name</span><input id="idAuthor" maxlength="30" placeholder="So friends know it's you"></label>
+  <label class="f"><span>Idea / thought</span><textarea id="idText" placeholder="e.g. Saw a nice hamper idea…"></textarea></label>
+  <label class="f"><span>Reference link (optional)</span><input id="idLink" inputmode="url" placeholder="https://…"></label>
+  <label class="f"><span>Photo (optional)</span><input id="idPhoto" type="file" accept="image/*"></label>
+  <button class="wide" type="button" id="idPost"><svg class="i"><use href="#i-edit"/></svg>Post</button>
+  <div id="ideasFeed" style="margin-top:18px"></div>
+</div></div>
+
 <div class="sheet hidden" id="csvSheet" role="dialog" aria-modal="true" aria-labelledby="csT"><div class="panel">
   <div class="grab"><h2 id="csT">Item list</h2><button class="ib" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
   <p>Copy and paste into Google Sheets.</p>
@@ -733,7 +763,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
 <script>
 (function () {
   'use strict';
-  var VERSION = '2.7';
+  var VERSION = '2.8';
   var $ = function (id) { return document.getElementById(id); };
   var WHOM = ['Husband / Wife', 'Friend (Boy/Girl)', 'Brother / Sister', 'Father', 'Mother', 'Kids'];
   var OCC = ['Birthday', 'Anniversary', 'Wedding', 'Engagement', 'Corporate', 'Housewarming', 'Seemantham', 'Barasala', 'Half-Saree', 'Just for fun'];
@@ -2431,7 +2461,7 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   $('sheetBtn').addEventListener('click', function () { if (S.sheet) window.open('https://docs.google.com/spreadsheets/d/' + S.sheet, '_blank'); });
   function syncStatus(msg) {
     var st = $('syncSt'); st.textContent = '';
-    $('cidRow').classList.toggle('hidden', !!GOOGLE_CLIENT_ID || !!S.linked); $('cid').value = S.cid || '';
+    $('cidRow').classList.toggle('hidden', !!GOOGLE_CLIENT_ID || !!S.linked); $('cid').value = S.cid || ''; $('shareApi').value = S.api || '';
     $('unlinkBtn').classList.toggle('hidden', !S.linked); $('sheetBtn').classList.toggle('hidden', !S.linked || !S.sheet);
     $('syncBtn').lastChild.textContent = S.linked ? (tokenOk() ? 'Sync now' : 'Sign in & sync') : 'Connect Google Drive';
     if (msg) { st.textContent = msg; return; }
@@ -2448,6 +2478,117 @@ main { max-width: 760px; margin: 0 auto; padding: 10px max(12px, env(safe-area-i
   window.addEventListener('online', function () { scheduleSync(); });
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') scheduleSync(2000); });
   syncStatus(); scheduleSync(2500);
+
+  // ---------- Share an album (no sign-in needed) + Friends' Ideas board ----------
+  // Uses a small free Google Apps Script (see /vcam-share/Code.gs) that runs as YOU, so a friend
+  // opening the link never needs their own Google account — the script reads/writes YOUR Drive for them.
+  $('shareApi').addEventListener('change', function () { S.api = this.value.trim(); saveS(); });
+  function apiUrl() { return (S.api || '').trim(); }
+  function apiGet(api, params) { return fetch(api + '?' + new URLSearchParams(params)).then(function (r) { return r.json(); }); }
+  function apiPost(api, params, body) {
+    return fetch(api + '?' + new URLSearchParams(params), { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) }).then(function (r) { return r.json(); });
+  }
+  function fileB64(file) { return new Promise(function (res) { var r = new FileReader(); r.onload = function () { var s = r.result, i = s.indexOf(','); res({ base64: s.slice(i + 1), mime: file.type || 'image/jpeg' }); }; r.readAsDataURL(file); }); }
+  try { var fname = localStorage.getItem('vcam-friendname'); if (fname) { $('idAuthor').value = fname; $('saAuthor').value = fname; } } catch (e) {}
+  function saveFriendName() { try { localStorage.setItem('vcam-friendname', this.value.trim()); } catch (e) {} }
+  $('idAuthor').addEventListener('change', saveFriendName); $('saAuthor').addEventListener('change', saveFriendName);
+
+  function shareAlbum(name) {
+    var api = apiUrl();
+    if (!api) { toast('Add your sharing key in Settings first — see Help for how to get one.'); return; }
+    var link = location.origin + location.pathname + '?shared=' + encodeURIComponent(name || '') + '&api=' + encodeURIComponent(api);
+    try {
+      navigator.clipboard.writeText(link).then(function () { haptic('success'); toast('Link copied — send it to your friend. They can open it with no sign-in.'); },
+        function () { toast('Link: ' + link); });
+    } catch (e) { toast('Link: ' + link); }
+  }
+  $('albShare').addEventListener('click', function () { shareAlbum(editAlb); });
+
+  var shareCtx = null; // {api, album} once a shared link is opened
+  function renderSharedFeed(items) {
+    var feed = $('saFeed'); feed.innerHTML = '';
+    if (!items.length) { feed.innerHTML = '<p class="mut">No items in this album yet — be the first to add one below.</p>'; return; }
+    items.forEach(function (it) {
+      var card = document.createElement('div'); card.style.cssText = 'display:flex;gap:12px;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.08);align-items:flex-start;';
+      var img = document.createElement('img'); img.style.cssText = 'width:64px;height:64px;border-radius:10px;object-fit:cover;background:#eee;flex:0 0 auto;';
+      if (it.photoBase64) img.src = 'data:' + (it.photoMime || 'image/jpeg') + ';base64,' + it.photoBase64;
+      card.appendChild(img);
+      var d = document.createElement('div'); d.style.flex = '1';
+      d.innerHTML = '<b>' + (it.name || '(unnamed)') + '</b>' + (it.sell != null && it.sell !== '' ? ' · ₹' + it.sell : '') + (it.points && it.points.length ? '<br><small class="mut">' + it.points.join(' • ') + '</small>' : '');
+      card.appendChild(d); feed.appendChild(card);
+    });
+  }
+  function openSharedAlbum(album, api) {
+    shareCtx = { api: api, album: album };
+    $('saT').textContent = album || 'Shared album';
+    $('saSub').textContent = "Shared from Varnana's V Cam · open to everyone with this link";
+    $('saFeed').innerHTML = '<p class="mut">Loading…</p>';
+    closeSheets(); openSheet('sharedAlbSheet');
+    apiGet(api, { action: 'getAlbum', album: album }).then(function (r) { renderSharedFeed(r.items || []); })
+      .catch(function () { $('saFeed').innerHTML = '<p class="mut">Could not load. Check your internet and try again.</p>'; });
+  }
+  $('saAdd').addEventListener('click', function () {
+    if (!shareCtx) return;
+    var photo = $('saPhoto').files[0];
+    $('saAdd').disabled = true;
+    (photo ? fileB64(photo) : Promise.resolve(null)).then(function (ph) {
+      var body = { album: shareCtx.album, author: $('saAuthor').value.trim(), name: $('saName').value.trim(),
+        sell: $('saSell').value ? +$('saSell').value : null, points: ($('saPoints').value || '').split('\n').map(function (s) { return s.trim(); }).filter(Boolean) };
+      if (ph) { body.photoBase64 = ph.base64; body.photoMime = ph.mime; }
+      return apiPost(shareCtx.api, { action: 'addItem' }, body);
+    }).then(function () {
+      haptic('success'); toast('Added! It will appear for everyone soon.');
+      $('saName').value = ''; $('saSell').value = ''; $('saPoints').value = ''; $('saPhoto').value = ''; $('saAdd').disabled = false;
+      openSharedAlbum(shareCtx.album, shareCtx.api);
+    }).catch(function () { $('saAdd').disabled = false; haptic('error'); toast('Could not add. Check your internet and try again.'); });
+  });
+
+  function renderIdeas(items) {
+    var feed = $('ideasFeed'); feed.innerHTML = '';
+    if (!items.length) { feed.innerHTML = '<p class="mut">No ideas posted yet — be the first!</p>'; return; }
+    items.forEach(function (t) {
+      var card = document.createElement('div'); card.style.cssText = 'padding:12px 0;border-bottom:1px solid rgba(0,0,0,.08);';
+      var head = document.createElement('div'); head.innerHTML = '<b>' + (t.author || 'A friend') + '</b> <small class="mut">' + new Date(t.ts).toLocaleString() + '</small>';
+      card.appendChild(head);
+      if (t.text) { var p = document.createElement('div'); p.textContent = t.text; p.style.margin = '4px 0'; card.appendChild(p); }
+      if (t.link) { var a = document.createElement('a'); a.href = t.link; a.target = '_blank'; a.rel = 'noopener'; a.textContent = t.link; a.style.cssText = 'word-break:break-all;'; card.appendChild(a); }
+      if (t.photoBase64) { var img = document.createElement('img'); img.src = 'data:' + (t.photoMime || 'image/jpeg') + ';base64,' + t.photoBase64; img.style.cssText = 'max-width:160px;border-radius:10px;display:block;margin-top:6px;'; card.appendChild(img); }
+      (t.comments || []).forEach(function (c) { var cm = document.createElement('div'); cm.style.cssText = 'margin-top:6px;margin-left:10px;font-size:13px;'; cm.innerHTML = '<b>' + (c.author || '') + ':</b> ' + c.text; card.appendChild(cm); });
+      var replyBtn = document.createElement('button'); replyBtn.type = 'button'; replyBtn.className = 'chip'; replyBtn.textContent = 'Reply'; replyBtn.style.marginTop = '6px';
+      replyBtn.addEventListener('click', function () {
+        var txt = prompt('Your reply:'); if (!txt) return;
+        apiPost(apiUrl() || (shareCtx && shareCtx.api), { action: 'addComment' }, { id: t.id, author: $('idAuthor').value.trim(), text: txt }).then(loadThoughts);
+      });
+      card.appendChild(replyBtn); feed.appendChild(card);
+    });
+  }
+  function loadThoughts() {
+    var api = apiUrl() || (shareCtx && shareCtx.api);
+    if (!api) { $('ideasFeed').innerHTML = '<p class="mut">Add your sharing key in Settings, or open this via a shared link.</p>'; return; }
+    $('ideasFeed').innerHTML = '<p class="mut">Loading…</p>';
+    apiGet(api, { action: 'getThoughts' }).then(function (r) { renderIdeas(r.thoughts || []); }).catch(function () { $('ideasFeed').innerHTML = '<p class="mut">Could not load. Check your internet.</p>'; });
+  }
+  function openIdeas() { closeSheets(); openSheet('ideasSheet'); loadThoughts(); }
+  $('ideasBtn').addEventListener('click', openIdeas); $('ideasBtn2').addEventListener('click', openIdeas);
+  $('idPost').addEventListener('click', function () {
+    var api = apiUrl() || (shareCtx && shareCtx.api);
+    if (!api) { toast('Add your sharing key in Settings first.'); return; }
+    var photo = $('idPhoto').files[0];
+    $('idPost').disabled = true;
+    (photo ? fileB64(photo) : Promise.resolve(null)).then(function (ph) {
+      var body = { author: $('idAuthor').value.trim(), text: $('idText').value.trim(), link: $('idLink').value.trim() };
+      if (ph) { body.photoBase64 = ph.base64; body.photoMime = ph.mime; }
+      return apiPost(api, { action: 'addThought' }, body);
+    }).then(function () {
+      haptic('success'); toast('Posted!'); $('idText').value = ''; $('idLink').value = ''; $('idPhoto').value = ''; $('idPost').disabled = false;
+      loadThoughts();
+    }).catch(function () { $('idPost').disabled = false; haptic('error'); toast('Could not post. Check your internet.'); });
+  });
+
+  (function () {
+    var p = new URLSearchParams(location.search), shared = p.get('shared'), api = p.get('api');
+    if (shared && api) { S.api = api; saveS(); setTimeout(function () { openSharedAlbum(shared, api); }, 500); }
+  })();
 
   // ---------- offline + updates ----------
   if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
